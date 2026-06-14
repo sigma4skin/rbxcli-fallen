@@ -3,7 +3,7 @@
 --end
 --_G.FallenLoaded = true
 
--- 6/11/2026
+-- 6/15/2026
 local Cache = {}
 Cache.RunService = game:GetService("RunService")
 Cache.Workspace = game:GetService("Workspace")
@@ -12,6 +12,7 @@ Cache.ReplicatedStorage = game:GetService("ReplicatedStorage")
 Cache.UserInputService = game:GetService("UserInputService")
 Cache.PhysicsService = game:GetService("PhysicsService")
 Cache.SoundService = game:GetService("SoundService")
+Cache.HttpService = game:GetService("HttpService")
 Cache.Client = Cache.Players.LocalPlayer
 Cache.Camera = Cache.Workspace.CurrentCamera
 Cache.Character = Cache.Client.Character or Cache.Client.CharacterAdded:Wait()
@@ -21,6 +22,22 @@ Cache.Client.CharacterAdded:Connect(function(newCharacter)
 end)
 
 local Flags = {}
+
+-- default settings
+Flags.AimbotTargetPart = "Head"
+Flags.AimbotMaxDistance = 1000
+Flags.AimbotFov = 50
+Flags.AimbotVisCheck = false
+Flags.FlySpeed = 5
+Flags.AimbotFovCheck = false
+Flags.SafezoneCheck = false
+Flags.Aimbot = false
+Flags.Snapline = false
+Flags.InstantBullet = false
+Flags.Desync = false
+Flags.Fly = false
+Flags.InfiniteFly = false
+
 Flags.KeyBinds = {}
 Flags.KeyStates = {}
 
@@ -115,49 +132,13 @@ Cheat.Offsets = {
 	["DataSenderRate"] = memory.get_base_address() + 0x760a654,
 	["PhysicsSenderMaxBandwidthBps"] = memory.get_base_address() + 0x760a634,
 }
-Cheat.ArmorImages = {
-	["Armor_153"] = "rbxassetid://14654795058",
-	["Armor_115"] = "rbxassetid://14654794835",
-	["Armor_116"] = "rbxassetid://14654794952",
-	["Armor_156"] = "rbxassetid://14654831164",
-	["Armor_117"] = "rbxassetid://14654794730",
-	["Armor_124"] = "rbxassetid://14776135830",
-	["Armor_125"] = "rbxassetid://14776135514",
-	["Armor_123"] = "rbxassetid://14776135648",
-	["Armor_145"] = "rbxassetid://14654792150",
-	["Armor_146"] = "rbxassetid://14654792418",
-	["Armor_147"] = "rbxassetid://14654792046",
-	["Armor_155"] = "rbxassetid://14654792260",
-	["Armor_148"] = "rbxassetid://14654793165",
-	["Armor_149"] = "rbxassetid://14654793303",
-	["Armor_150"] = "rbxassetid://14654792938",
-	["Armor_157"] = "rbxassetid://14654794652",
-	["Armor_271"] = "rbxassetid://18312187080",
-	["Armor_272"] = "rbxassetid://18354053691",
-	["Armor_141"] = "rbxassetid://14654791532",
-	["Armor_142"] = "rbxassetid://14654791689",
-	["Armor_143"] = "rbxassetid://14654791387",
-	["Armor_158"] = "rbxassetid://14654794097",
-	["Armor_113"] = "rbxassetid://14654791921",
-	["Armor_59"] = "rbxassetid://14654794392",
-	["Armor_63"] = "rbxassetid://14654792590",
-	["Armor_60"] = "rbxassetid://15046441717",
-	["Armor_111"] = "rbxassetid://14654794176",
-	["Armor_121"] = "rbxassetid://14654795457",
-	["Armor_112"] = "rbxassetid://14654793432",
-	["Armor_122"] = "rbxassetid://14654794281",
-	["Armor_114"] = "rbxassetid://14654791246",
-	["Armor_159"] = "rbxassetid://15304093679",
-	["Armor_154"] = "rbxassetid://14654795325",
-	["Armor_152"] = "rbxassetid://14654791788",
-	["Armor_223"] = "rbxassetid://16652579167",
-	["Armor_222"] = "rbxassetid://16652581317",
-	["Armor_298"] = "rbxassetid://119847143620647",
-	["Armor_308"] = "rbxassetid://117242081838466",
-	["Armor_309"] = "rbxassetid://80978101846806",
-}
 Cheat.RaycastDistance = 1000
-Cheat.RaycastFilterList = { Cache.Character:FindFirstChild("HumanoidRootPart") }
+Cheat.Directory = "SigmaFallenScript"
+
+-- create directory
+if not fs.is_directory(Cheat.Directory) then
+	pcall(fs.create_directory(Cheat.Directory))
+end
 
 -- gun mods
 local function ApplyNoRecoil()
@@ -184,8 +165,12 @@ local function ApplyNoSpread()
 	for _, tbl in gc.getgc("table") do
 		pcall(function()
 			if tbl.Value then
-				if tbl.Value:ContainsKey("AimSpreadMult") then tbl.Value.AimSpreadMult = -1 end
-				if tbl.Value:ContainsKey("HipSpreadMult") then tbl.Value.HipSpreadMult = -1 end
+				if tbl.Value:ContainsKey("AimSpreadMult") then
+					tbl.Value.AimSpreadMult = -1
+				end
+				if tbl.Value:ContainsKey("HipSpreadMult") then
+					tbl.Value.HipSpreadMult = -1
+				end
 			end
 		end)
 	end
@@ -195,14 +180,18 @@ local function DisableNoSpread()
 	for _, tbl in gc.getgc("table") do
 		pcall(function()
 			if tbl.Value then
-				if tbl.Value:ContainsKey("AimSpreadMult") then tbl.Value.AimSpreadMult = 1 end
-				if tbl.Value:ContainsKey("HipSpreadMult") then tbl.Value.HipSpreadMult = 1 end
+				if tbl.Value:ContainsKey("AimSpreadMult") then
+					tbl.Value.AimSpreadMult = 1
+				end
+				if tbl.Value:ContainsKey("HipSpreadMult") then
+					tbl.Value.HipSpreadMult = 1
+				end
 			end
 		end)
 	end
 end
 
-
+-- helper functions
 local function CalculateDrop(BulletSpeed, BulletGravity, Position, Origin)
 	local Distance = (Origin - Position).Magnitude
 	local TimeToHit = Distance / BulletSpeed
@@ -217,13 +206,62 @@ end
 local function CalculateTargetPosition(BulletSpeed, BulletGravity, Velocity, Position, Origin)
 	local MovePred = Velocity * ((Origin - Position).Magnitude / BulletSpeed)
 	local Drop = CalculateDrop(BulletSpeed, BulletGravity, Position, Origin)
-	return Position + Vector3.new(MovePred.X, 0, MovePred.Z) + Vector3.new(0, Drop, 0)
+	return Position + Vector3.new(MovePred.X, MovePred.Y, MovePred.Z) + Vector3.new(0, Drop, 0)
 end
 
-local function Vector2Distance(a, b)
-	local dx = a.X - b.X
-	local dy = a.Y - b.Y
-	return math.sqrt(dx * dx + dy * dy)
+local function GetCharacterParts(character)
+	local parts = {}
+	if not character or character:IsInvalidInstance() then
+		return parts
+	end
+	for _, child in character:GetChildren() do
+		if child:IsA("BasePart") then
+			table.insert(parts, child)
+		end
+	end
+	return parts
+end
+
+local function BuildSelfFilter()
+	return GetCharacterParts(Cache.Character)
+end
+
+local function BuildVisFilter(targetCharacter)
+	local list = GetCharacterParts(Cache.Character)
+	for _, part in GetCharacterParts(targetCharacter) do
+		table.insert(list, part)
+	end
+	return list
+end
+
+local function IsTargetVisible(Character, TargetPart)
+	if not Character or not TargetPart then
+		return false
+	end
+
+	local Origin = Cache.Camera.CFrame.Position
+	local Direction = (TargetPart.Position - Origin)
+
+	-- filter own character and the target character so the raycast passes through them and only hits geometry
+	local Filter = BuildVisFilter(Character)
+
+	local Result = physics.raycast(Origin, Direction.Unit, Direction.Magnitude, Filter)
+
+	-- if nothing was hit
+	if not Result or not Result.hit_successful then
+		return true
+	end
+
+	local HitInstance = Result.Instance
+	if HitInstance then
+		local HitModel = HitInstance
+		while HitModel and not HitModel:IsA("Model") do
+			HitModel = HitModel.Parent
+		end
+		return HitModel == Character
+	end
+
+	return false
 end
 
 local function FindClosestViableTarget()
@@ -248,6 +286,10 @@ local function FindClosestViableTarget()
 		if not Humanoid or Humanoid.Health <= 0 then
 			continue
 		end
+		local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+		if not HumanoidRootPart then
+			continue
+		end
 
 		if Flags.SafezoneCheck then
 			local Success, Value = pcall(function()
@@ -261,7 +303,7 @@ local function FindClosestViableTarget()
 			end
 		end
 
-		if LocalRoot and (LocalRoot.Position - Head.Position).Magnitude > (Flags.AimbotMaxDistance or 1000) then
+		if LocalRoot and (LocalRoot.Position - Head.Position).Magnitude > Flags.AimbotMaxDistance then
 			continue
 		end
 
@@ -270,18 +312,51 @@ local function FindClosestViableTarget()
 			continue
 		end
 
-		local Distance = Vector2Distance(ScreenPos, MousePos)
-		if Flags.AimbotFovCheck and Distance > (Flags.AimbotFov or 50) then
+		local Distance = (ScreenPos - MousePos).Magnitude
+		if Flags.AimbotFovCheck and Distance > Flags.AimbotFov then
 			continue
 		end
 
 		if Distance < ClosestDistance then
+			local TargetPart
+			local TargetPartName = Flags.AimbotTargetPart
+
+			if TargetPartName == "Head" then
+				TargetPart = Head
+			elseif TargetPartName == "HumanoidRootPart" then
+				TargetPart = HumanoidRootPart
+			elseif TargetPartName == "Closest" then
+				local ClosestPartDist = math.huge
+				for _, Part in Character:GetChildren() do
+					if not Part:IsA("BasePart") then
+						continue
+					end
+					local PartScreen, PartOnScreen = rendering.world_to_screen(Part.Position)
+					if not PartOnScreen then
+						continue
+					end
+
+					local PartDist = (PartScreen - MousePos).Magnitude
+					if PartDist < ClosestPartDist then
+						ClosestPartDist = PartDist
+						TargetPart = Part
+					end
+				end
+				TargetPart = TargetPart or Head
+			end
+
+			if Flags.AimbotVisCheck and not IsTargetVisible(Character, TargetPart) then
+				continue
+			end
+
 			ClosestDistance = Distance
 			ClosestTarget = {
 				Player = Player,
 				Character = Character,
 				Head = Head,
+				HumanoidRootPart = HumanoidRootPart,
 				Humanoid = Humanoid,
+				TargetPart = TargetPart,
 				ScreenDistance = Distance,
 				ScreenPos = Vector2.new(ScreenPos.X, ScreenPos.Y),
 			}
@@ -401,24 +476,26 @@ end
 local function OnModCheckerToggle(bool, ModCheckerDropdown)
 	Flags.ModChecker = bool
 	ModCheckerDropdown:set_visible(bool)
-	if bool then
-		local foundMod = false
-		for _, Player in Cache.Players:GetPlayers() do
-			if Player ~= Cache.Client and Cheat.ModeratorIDs[Player.UserId] then
-				foundMod = true
-				if Flags.ModCheck == "Notify" then
-					rbxcli.display_notification(
-						Cheat.ModeratorIDs[Player.UserId] .. " (" .. Player.Name .. ") is in your game!",
-						7
-					)
-				elseif Flags.ModCheck == "Kick" then
-					print("in work")
-				end
+	if not bool then
+		return
+	end
+
+	local foundMod = false
+	for _, Player in Cache.Players:GetPlayers() do
+		if Player ~= Cache.Client and Cheat.ModeratorIDs[Player.UserId] then
+			foundMod = true
+			if Flags.ModCheck == "Notify" then
+				rbxcli.display_notification(
+					Cheat.ModeratorIDs[Player.UserId] .. " (" .. Player.Name .. ") is in your game!",
+					7
+				)
+			elseif Flags.ModCheck == "Kick" then
+				print("in work")
 			end
 		end
-		if not foundMod and (Flags.ModCheck == "Notify" or not Flags.ModCheck) then
-			rbxcli.display_notification("No moderators found in server", 5)
-		end
+	end
+	if not foundMod and (Flags.ModCheck == "Notify" or not Flags.ModCheck) then
+		rbxcli.display_notification("No moderators found in server", 5)
 	end
 end
 
@@ -432,8 +509,20 @@ local DesyncKeybind
 
 do
 	local AimbotCategory = AimbotTab:add_category("Aimbot")
+
+	local MaxDistanceSlider
+	local SafezoneToggle
+	local TargetPartDropdown
+	local VisCheckToggle
+
 	AimbotCategory:add_toggle("Aimbot", false, function(bool)
 		Flags.Aimbot = bool
+
+		MaxDistanceSlider:set_visible(bool)
+		SafezoneToggle:set_visible(bool)
+		TargetPartDropdown:set_visible(bool)
+		AimbotKeybind:set_visible(bool)
+		VisCheckToggle:set_visible(bool)
 	end)
 	AimbotKeybind = AimbotCategory:add_keybind(
 		"Keybind",
@@ -441,6 +530,9 @@ do
 		Enum.KeybindMode.PressAndHold,
 		function(k) end
 	)
+	AimbotKeybind:set_visible(false)
+
+	-- on activated behvaior
 	AimbotKeybind:on_activated(function(active)
 		if active then
 			Flags.AimbotActive = true
@@ -450,12 +542,32 @@ do
 			Flags.LockedTarget = nil
 		end
 	end)
-	AimbotCategory:add_slider("Max Distance", 50, 1500, 1000, Enum.SliderValueType.Int, function(v)
+	TargetPartDropdown = AimbotCategory:add_dropdown(
+		"Target Part",
+		{ "Head", "Humanoid Root Part", "Closest" },
+		0,
+		function(v)
+			local Parts = { "Head", "HumanoidRootPart", "Closest" }
+			Flags.AimbotTargetPart = Parts[v + 1]
+			Flags.LockedTarget = nil
+		end
+	)
+	TargetPartDropdown:set_visible(false)
+	MaxDistanceSlider = AimbotCategory:add_slider("Max Distance", 50, 1500, 1000, Enum.SliderValueType.Int, function(v)
 		Flags.AimbotMaxDistance = v
+		Flags.LockedTarget = nil
 	end)
-	AimbotCategory:add_toggle("Safezone Check", false, function(bool)
+	MaxDistanceSlider:set_visible(false)
+	VisCheckToggle = AimbotCategory:add_toggle("Visible Check", false, function(bool)
+		Flags.AimbotVisCheck = bool
+		Flags.LockedTarget = nil
+	end)
+	VisCheckToggle:set_visible(false)
+	SafezoneToggle = AimbotCategory:add_toggle("Safezone Check", false, function(bool)
 		Flags.SafezoneCheck = bool
+		Flags.LockedTarget = nil
 	end)
+	SafezoneToggle:set_visible(false)
 end
 
 do
@@ -499,29 +611,26 @@ local MovementTab = gui.add_tab("Movement", { icon = Enum.TabIcon.Human, after =
 do
 	local MovementCategory = MovementTab:add_category("Movement")
 	local FlySpeedSlider
-	local InfiniteFlyToggle
+	--local InfiniteFlyToggle
 	MovementCategory:add_toggle("Fly", false, function(bool)
 		Flags.Fly = bool
 		FlySpeedSlider:set_visible(bool)
-		InfiniteFlyToggle:set_visible(bool)
-
-		if bool == false then
-			Cache.Character:FindFirstChild("Humanoid").PlatformStand = false
-		end
+		--InfiniteFlyToggle:set_visible(bool)
 	end)
 	FlySpeedSlider = MovementCategory:add_slider("Fly Speed", 1, 7, 5, Enum.SliderValueType.Int, function(v)
 		Flags.FlySpeed = v
 	end)
 	FlySpeedSlider:set_visible(false)
+	--[[
 	InfiniteFlyToggle = MovementCategory:add_toggle("Infinite Fly", false, function(bool)
 		Flags.InfiniteFly = bool
 	end)
-	InfiniteFlyToggle:set_visible(false)
+	--]]
+	--InfiniteFlyToggle:set_visible(false)
 end
 
 do
 	local DesyncCategory = MovementTab:add_category("Desync")
-	Flags.DesyncType = "Movement"
 	local DesyncKeyBind
 	DesyncCategory:add_toggle("Desync", false, function(bool)
 		Flags.Desync = bool
@@ -657,6 +766,10 @@ do
 					or not Flags.LockedTarget.Character.Parent
 					or not Flags.LockedTarget.Humanoid
 					or Flags.LockedTarget.Humanoid.Health <= 0
+					or (
+						Flags.AimbotVisCheck
+						and not IsTargetVisible(Flags.LockedTarget.Character, Flags.LockedTarget.TargetPart)
+					)
 				then
 					Flags.LockedTarget = FindClosestViableTarget()
 				end
@@ -666,7 +779,38 @@ do
 					return
 				end
 
-				local TargetPos = Flags.LockedTarget.Head.Position
+				local ResolvedPart
+				local TargetPartName = Flags.AimbotTargetPart or "Head"
+				local Char = Flags.LockedTarget.Character
+
+				if TargetPartName == "Closest" then
+					local MousePos = Cache.UserInputService:GetMouseLocation()
+					local ClosestPartDist = math.huge
+					for _, Part in Char:GetChildren() do
+						if not Part:IsA("BasePart") then
+							continue
+						end
+						local PartScreen, PartOnScreen = rendering.world_to_screen(Part.Position)
+						if not PartOnScreen then
+							continue
+						end
+						local PartDist = (PartScreen - MousePos).Magnitude
+						if PartDist < ClosestPartDist then
+							ClosestPartDist = PartDist
+							ResolvedPart = Part
+						end
+					end
+					ResolvedPart = ResolvedPart or Flags.LockedTarget.Head
+				elseif TargetPartName == "HumanoidRootPart" then
+					ResolvedPart = Char:FindFirstChild("HumanoidRootPart") or Flags.LockedTarget.Head
+				else
+					ResolvedPart = Char:FindFirstChild("Head") or Flags.LockedTarget.TargetPart
+				end
+
+				if not ResolvedPart then
+					return
+				end
+				local TargetPos = ResolvedPart.Position
 				local Info = GetBulletInfo(GetHeldWeapon(Cache.Character))
 				if not Info then
 					return
@@ -679,13 +823,13 @@ do
 						Flags.LockedTarget.Head.Position,
 						Cache.Camera.CFrame.Position
 					)
-					TargetPos = Flags.LockedTarget.Head.Position + Vector3.new(0, Drop, 0)
+					TargetPos = ResolvedPart.Position + Vector3.new(0, Drop, 0)
 				else
 					TargetPos = CalculateTargetPosition(
 						Info.Speed,
 						Info.Gravity,
-						Flags.LockedTarget.Head.Velocity,
-						Flags.LockedTarget.Head.Position,
+						ResolvedPart.Velocity,
+						ResolvedPart.Position,
 						Cache.Camera.CFrame.Position
 					)
 				end
@@ -709,7 +853,7 @@ do
 					local MousePos = Cache.UserInputService:GetMouseLocation()
 					immediate.line(
 						Vector2.new(MousePos.X, MousePos.Y),
-						Flags.LockedTarget.Head.Position,
+						Flags.LockedTarget.TargetPart.Position,
 						1,
 						true,
 						Color4.new(1, 1, 1, 1)
@@ -721,12 +865,11 @@ do
 
 	-- esp rendering
 	do
-		local Viewport = Cache.Camera.ViewportSize
-
-		local BoxCount = 7
+		-- armor viewer vars
+		local BoxCount = 8
 		local BoxSize = 64 -- width and height of each box
 		local BoxSpacing = 5 -- gap between boxes
-		local TopMargin = 30 -- distance from top of screen
+		local TopMargin = 55 -- distance from top of screen
 		local BoxRounding = 10
 
 		-- background, border, text colors
@@ -734,33 +877,89 @@ do
 
 		-- image cache
 		local ImageCache = {}
-		local function GetImage(AssetId)
-			if not AssetId then
+		local Image_Base_Url = "https://raw.githubusercontent.com/sigma4skin/rbxcli-fallen/main/armor_images/"
+		local ArmorImageDir = Cheat.Directory .. "/armor_images/"
+
+		-- ensure dirs exist
+		if not fs.is_directory(ArmorImageDir) then
+			pcall(function()
+				fs.create_directory(ArmorImageDir)
+			end)
+		end
+
+		local function GetImage(ArmorId)
+			if not ArmorId then
 				return nil
 			end
 
-			local Cached = ImageCache[AssetId]
-			if Cached == nil then
-				local Ok, Handle = pcall(function()
-					return image.load_from_asset_id(AssetId)
-				end)
-				if Ok and Handle then
-					ImageCache[AssetId] = Handle
-					return Handle
-				else
-					ImageCache[AssetId] = false
-					return nil
-				end
+			local Cached = ImageCache[ArmorId]
+			if Cached ~= nil then
+				return Cached or nil
 			end
-			return Cached or nil
+
+			local Existing = image.get(ArmorId)
+			if Existing and Existing.IsValid then
+				ImageCache[ArmorId] = Existing
+				return Existing
+			end
+
+			-- fetch from github
+			local Url = Image_Base_Url .. ArmorId .. ".png"
+			task.spawn(function()
+				local FilePath = ArmorImageDir .. ArmorId .. ".png"
+
+				-- try loading from disk first
+				if fs.is_file(FilePath) then
+					local Ok, Data = pcall(fs.read_async, FilePath)
+					if Ok and Data then
+						local Img = image.load(ArmorId, Data)
+						ImageCache[ArmorId] = Img and Img.IsValid and Img or false
+						return
+					end
+				end
+
+				-- not on disk load from github
+				local Ok, Response = pcall(Cache.HttpService.RequestAsync, Cache.HttpService, {
+					Url = Url,
+					Method = "GET",
+					Headers = { ["User-Agent"] = "rbxcli-script" },
+				})
+
+				if not Ok or not Response.Success then
+					ImageCache[ArmorId] = false
+					return
+				end
+
+				local RawData = buffer.fromstring(Response.Body)
+
+				-- save to disk for next time
+				pcall(function()
+					if not fs.is_file(FilePath) then
+						fs.create_file(FilePath)
+						fs.write_async(FilePath, RawData)
+					end
+				end)
+
+				local Img = image.load(ArmorId, buffer.fromstring(Response.Body))
+				ImageCache[ArmorId] = Img and Img.IsValid and Img or false
+			end)
+
+			return nil
 		end
 
-		-- each slot: { Icon = Image? } or nil for empty
-		local function GetSlots()
-			local Slots = {}
+		-- caching shit
+		local SlotCache = {}
+		local SlotCacheTarget = nil
+
+		local function RebuildSlotCache()
+			SlotCache = {}
+			if not Flags.LockedTarget then
+				return
+			end
+
 			local Char = Flags.LockedTarget.Character
 			if not Char then
-				return Slots
+				return
 			end
 
 			local Seen = {}
@@ -770,33 +969,106 @@ do
 				if Idx > BoxCount then
 					break
 				end
-				local Name = Child.Name
-				if Name:Find("Armor") then
-					local ArmorId = Name:Match("^(.-)/") or Name
-					ArmorId = ArmorId:gsub(" ", "_")
 
-					local AssetId = Cheat.ArmorImages[ArmorId]
-					if AssetId and not Seen[ArmorId] then
-						Seen[ArmorId] = true
-						Slots[Idx] = {
-							Icon = GetImage(AssetId),
-						}
-						Idx += 1
+				local ArmorId = Child.Name:match("^Armor_%d+")
+				if ArmorId and not Seen[ArmorId] then
+					Seen[ArmorId] = true
+					SlotCache[Idx] = { ArmorId = ArmorId, Icon = GetImage(ArmorId) }
+					Idx += 1
+				end
+			end
+		end
+
+		local function UpdateSlotCacheImages()
+			for I, Slot in SlotCache do
+				if Slot and not Slot.Icon then
+					local Img = ImageCache[Slot.ArmorId]
+					if Img then
+						Slot.Icon = Img
+					end
+				end
+			end
+		end
+
+		local WeaponCache = {} -- [Player] = { Weapon = string, Connection = EventConnection }
+
+		-- player list cache (refreshed on player added/removed)
+		local PlayerListCache = {}
+
+		local function RebuildPlayerListCache()
+			PlayerListCache = {}
+			for _, Player in Cache.Players:GetPlayers() do
+				if Player ~= Cache.Client then
+					table.insert(PlayerListCache, Player)
+				end
+			end
+		end
+
+		-- build initial caches
+		RebuildPlayerListCache()
+
+		-- keep player list updated via events
+		Cache.Players.PlayerAdded:Connect(function(Player)
+			if Player ~= Cache.Client then
+				table.insert(PlayerListCache, Player)
+			end
+		end)
+
+		Cache.Players.PlayerRemoving:Connect(function(Player)
+			WeaponCache[Player] = nil
+			for I, P in PlayerListCache do
+				if P == Player then
+					table.remove(PlayerListCache, I)
+					break
+				end
+			end
+		end)
+		-- end of caching shit
+
+		-- throttled cache refresh timer
+		local WeaponCacheLastUpdate = 0
+		local SlotCacheLastUpdate = 0
+		local WEAPON_CACHE_INTERVAL = 1 -- refresh weapon cache every second (if your looking at these and your fps is shit change these)
+		local SLOT_CACHE_INTERVAL = 1 -- refresh slot cache every second
+
+		Cache.RunService.PreRender:Connect(function()
+			local Viewport = Cache.Camera.ViewportSize
+			local Now = os.clock()
+
+			-- refresh weapon cache on interval
+			if Now - WeaponCacheLastUpdate >= WEAPON_CACHE_INTERVAL then
+				WeaponCacheLastUpdate = Now
+				for _, Player in PlayerListCache do
+					local Char = Player.Character
+					if Char and not Char:IsInvalidInstance() then
+						local Entry = WeaponCache[Player]
+						if not Entry then
+							WeaponCache[Player] = {}
+							Entry = WeaponCache[Player]
+						end
+						Entry.weapon = GetHeldWeapon(Char)
+					else
+						WeaponCache[Player] = nil
 					end
 				end
 			end
 
-			return Slots
-		end
+			-- refresh slot cache on interval too
+			-- also handles locked target changing
+			if SlotCacheTarget ~= Flags.LockedTarget or Now - SlotCacheLastUpdate >= SLOT_CACHE_INTERVAL then
+				SlotCacheLastUpdate = Now
+				SlotCacheTarget = Flags.LockedTarget
+				RebuildSlotCache()
+			end
 
-		Cache.RunService.PreRender:Connect(function()
 			-- held item
 			if Flags.HeldItemEsp then
-				local camPos = Cache.Camera.CFrame.Position
-				local maxDist = Flags.PlayerLimitDistance or 500
+				local CamPos = Cache.Camera.CFrame.Position
+				local MaxDist = Flags.PlayerLimitDistance or 500
 
-				for _, Player in Cache.Players:GetPlayers() do
-					if Player == Cache.Client then
+				for _, Player in PlayerListCache do
+					local Entry = WeaponCache[Player]
+					if not Entry then
 						continue
 					end
 
@@ -815,22 +1087,21 @@ do
 						continue
 					end
 
-					local Text = GetHeldWeapon(Char)
-
-					local worldPos = Head.Position + Vector3.new(0, -5, 0)
-					local dist = (camPos - worldPos).Magnitude
-					if dist > maxDist then
+					local WorldPos = Head.Position + Vector3.new(0, -5, 0)
+					local Dist = (CamPos - WorldPos).Magnitude
+					if Dist > MaxDist then
 						continue
 					end
 
-					local screenPos, onScreen = rendering.world_to_screen(worldPos)
-					if not onScreen then
+					local ScreenPos, OnScreen = rendering.world_to_screen(WorldPos)
+					if not OnScreen then
 						continue
 					end
 
-					local size = immediate.calculate_text_size(Text, font20)
+					local Text = Entry.weapon or "None"
+					local Size = immediate.calculate_text_size(Text, font20)
 					immediate.text(
-						Vector2.new(screenPos.X - size.X / 2, screenPos.Y),
+						Vector2.new(ScreenPos.X - Size.X / 2, ScreenPos.Y),
 						Text,
 						font20,
 						true,
@@ -841,32 +1112,31 @@ do
 
 			-- armor viewer
 			if Flags.ArmorViewer and Flags.LockedTarget then
+				-- refresh any icons that finished loading async this frame
+				UpdateSlotCacheImages()
+
 				local TotalWidth = BoxCount * BoxSize + (BoxCount - 1) * BoxSpacing
 				local StartX = (Viewport.X - TotalWidth) / 2
 				local Y = TopMargin
 
-				--local Slots = GetSlots()
-
-				for i = 1, BoxCount do
-					local X = StartX + (i - 1) * (BoxSize + BoxSpacing)
+				for I = 1, BoxCount do
+					local X = StartX + (I - 1) * (BoxSize + BoxSpacing)
 					local TopLeft = Vector2.new(X, Y)
 					local BottomRight = Vector2.new(X + BoxSize, Y + BoxSize)
 
 					-- filled background
 					immediate.rectangle(TopLeft, BottomRight, BoxRounding, true, false, BgColor)
 
-					-- images
-					local Slot = Slots[i]
-					if Slot then
-						if Slot.Icon then
-							immediate.image(
-								Slot.Icon,
-								Vector2.new(X + 2, Y + 2),
-								Vector2.new(X + BoxSize - 2, Y + BoxSize - 2),
-								Color4.new(1, 1, 1, 1),
-								BoxRounding
-							)
-						end
+					-- image
+					local Slot = SlotCache[I]
+					if Slot and Slot.Icon then
+						immediate.image(
+							Slot.Icon,
+							Vector2.new(X + 2, Y + 2),
+							Vector2.new(X + BoxSize - 2, Y + BoxSize - 2),
+							Color4.new(1, 1, 1, 1),
+							BoxRounding
+						)
 					end
 				end
 			end
@@ -973,19 +1243,19 @@ do
 
 	do -- movement
 		Cache.RunService.Heartbeat:Connect(function(dt)
-			local char = Cache.Character
-			if not char or not char.Parent then
+			local Char = Cache.Character
+			if not Char or not Char.Parent then
 				return
 			end
-			local Root = char:FindFirstChild("HumanoidRootPart")
-			local Humanoid = char:FindFirstChild("Humanoid")
+			local Root = Char:FindFirstChild("HumanoidRootPart")
+			local Humanoid = Char:FindFirstChild("Humanoid")
 			local IsFlying = false
 
 			if Flags.Fly then
 				task.spawn(function()
 					IsFlying = true
 					if Root and Humanoid and Humanoid.Health > 0 then
-						local Delta = dt * (Flags.FlySpeed or 5) * 3
+						local Delta = dt * Flags.FlySpeed * 3
 						local MoveVector = Vector3.new(0, 0, 0)
 						local Look = Cache.Camera.CFrame.LookVector
 						local Right = Cache.Camera.CFrame.RightVector
@@ -1007,38 +1277,35 @@ do
 						if Cache.UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
 							MoveVector += Vector3.new(0, -1, 0)
 						end
+
 						if MoveVector.Magnitude > 0 then
 							MoveVector = MoveVector.Unit
 						end
 						local Position = Root.CFrame.Position + MoveVector * Delta
-						Humanoid.PlatformStand = true
-						Root.Velocity = Vector3.new(0, 0, 0)
+
+						Humanoid.PlatformStand = false
+						Root.Velocity = Vector3.zero
 						Root.CFrame = CFrame.new(Position, Position + Vector3.new(Look.X, 0, Look.Z))
 					end
 				end)
 			end
 
-			if Flags.InfiniteFly and IsFlying and Root and char and char.Parent then
-				local Result = physics.raycast(
-					Root.Position,
-					Vector3.new(0, -1000, 0),
-					Cheat.RaycastDistance,
-					Cheat.RaycastFilterList
-				)
-				if Result and Result.distance > 4 then
+			if Flags.InfiniteFly and IsFlying and Root and Char and Char.Parent then
+				local Result =
+					physics.raycast(Root.Position, Vector3.new(0, -1, 0), Cheat.RaycastDistance, BuildSelfFilter())
+
+				local DistanceFromGround = Result and Result.hit_successful and Result.distance or math.huge
+				if DistanceFromGround > 8 then
 					task.spawn(function()
-						if not Root or not Root.Parent or not char or not char.Parent then
-							return
-						end
-						local OldVel = Root.AssemblyLinearVelocity
-						for _, Part in char:GetChildren() do
-							if Part:IsA("BasePart") then
+						local OldVel = Root.Velocity
+						for _, Part in Char:GetChildren() do
+							if Part:IsA("BasePart") or Part:IsA("MeshPart") then
 								Part.Velocity = Vector3.new(0, -1000, 0)
 							end
 						end
 						Cache.RunService.PreRender:Wait()
-						for _, Part in char:GetChildren() do
-							if Part:IsA("BasePart") then
+						for _, Part in Char:GetChildren() do
+							if Part:IsA("BasePart") or Part:IsA("MeshPart") then
 								Part.Velocity = OldVel
 							end
 						end
@@ -1076,8 +1343,9 @@ do
 					local Distance = (Cache.Camera.CFrame.Position - Flags.DesyncPosition).Magnitude
 					local Color = Color4.new(1, 1, 1, 1)
 					local Text = "Desynced " .. tostring(math.floor(Distance)) .. " Studs"
-					local Width = #Text * 10
-					local CenterX = (ViewportSize.X / 2) - (Width / 2)
+					local TextSize = immediate.calculate_text_size(Text, font20)
+					local CenterX = (ViewportSize.X / 2) - (TextSize.X / 2)
+
 					if Distance >= 8 then
 						Color = Color4.new(1, 0, 0, 1)
 					end
