@@ -1,7 +1,3 @@
---!grant Memory
---!grant Filesystem
---!grant RuntimeLoadstring
-
 --[[
     4skin   - main codebase + the idea to make this
     axinlol - some dogshit misc esp made with ai
