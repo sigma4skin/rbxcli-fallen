@@ -907,7 +907,7 @@ do
 	MovementCategory:add_toggle("Fly", false, function(bool)
 		Flags.Fly = bool
 		FlySpeedSlider:set_visible(bool)
-		InfiniteFlyToggle:set_visible(bool)
+		--InfiniteFlyToggle:set_visible(bool)
 	end)
 	FlySpeedSlider = MovementCategory:add_slider("Fly Speed", 1, 7, 5, Enum.SliderValueType.Int, function(v)
 		Flags.FlySpeed = v
