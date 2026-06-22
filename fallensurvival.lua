@@ -914,11 +914,13 @@ do
 	end)
 	FlySpeedSlider:set_visible(false)
 
+	--[[
 	InfiniteFlyToggle = MovementCategory:add_toggle("Infinite Fly", false, function(bool)
 		Flags.InfiniteFly = bool
 	end)
 
 	InfiniteFlyToggle:set_visible(false)
+	--]]
 end
 
 do
