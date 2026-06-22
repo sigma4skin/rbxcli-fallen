@@ -5,10 +5,10 @@
 
 ]]
 
-if _G.FallenLoaded then
-	return
-end
-_G.FallenLoaded = true
+--if _G.FallenLoaded then
+--	return
+--end
+--_G.FallenLoaded = true
 
 -- 6/18/2026
 local Cache = {}
