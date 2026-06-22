@@ -1,21 +1,26 @@
---if _G.FallenLoaded then
---	return
---end
---_G.FallenLoaded = true
+--[[
+    4skin   - main codebase + the idea to make this
+    axinlol - some dogshit misc esp made with ai
+    oxyhax  - manip and visuals rewrite
 
--- 6/15/2026
+]]
+
+if _G.FallenLoaded then
+	return
+end
+_G.FallenLoaded = true
+
+-- 6/18/2026
 local Cache = {}
 Cache.RunService = game:GetService("RunService")
 Cache.Workspace = game:GetService("Workspace")
 Cache.Players = game:GetService("Players")
-Cache.ReplicatedStorage = game:GetService("ReplicatedStorage")
 Cache.UserInputService = game:GetService("UserInputService")
-Cache.PhysicsService = game:GetService("PhysicsService")
-Cache.SoundService = game:GetService("SoundService")
 Cache.HttpService = game:GetService("HttpService")
 Cache.Client = Cache.Players.LocalPlayer
 Cache.Camera = Cache.Workspace.CurrentCamera
 Cache.Character = Cache.Client.Character or Cache.Client.CharacterAdded:Wait()
+Cache.RakPeerId = Cache.Character.HumanoidRootPart.NetworkOwnerV3
 
 Cache.Client.CharacterAdded:Connect(function(newCharacter)
 	Cache.Character = newCharacter
@@ -28,6 +33,7 @@ Flags.AimbotTargetPart = "Head"
 Flags.AimbotMaxDistance = 1000
 Flags.AimbotFov = 50
 Flags.AimbotVisCheck = false
+Flags.AimbotManipulation = false
 Flags.FlySpeed = 5
 Flags.AimbotFovCheck = false
 Flags.SafezoneCheck = false
@@ -37,9 +43,24 @@ Flags.InstantBullet = false
 Flags.Desync = false
 Flags.Fly = false
 Flags.InfiniteFly = false
-
-Flags.KeyBinds = {}
-Flags.KeyStates = {}
+Flags.WhiteListedPlayers = {}
+Flags.Freecam = false
+Flags.FreecamActive = false
+Flags.FreecamSpeed = 5
+Flags.CardNoClip = false
+Flags.FreecamBtrTeleport = false
+Flags.FakeLag = false
+Flags.FakeLagInterval = 0.35
+Flags.FakeLagActive = false
+Flags.YawEnabled = false
+Flags.YawSpeed = 50
+Flags.YawType = "Jitter"
+Flags.YawMin = 0
+Flags.YawMax = 0
+Flags.TargetNpcs = false
+Flags.AimbotManipulationActive = false
+Flags.BodybagESP = false
+Flags.BodybagESPDistance = 500
 
 local Cheat = {}
 Cheat.BulletInfo = {
@@ -72,124 +93,256 @@ Cheat.BulletInfo = {
 	["Salvaged Double Barrel"] = { Speed = 550, Gravity = 0.6 },
 	["Military M39"] = { Speed = 2400, Gravity = 0.52 },
 }
+
 Cheat.ModeratorIDs = {
-	[51281722] = "Game Moderator",
-	[7178750309] = "Game Moderator",
-	[113179883] = "Game Moderator",
-	[3122439095] = "Game Moderator",
-	[991290934] = "Game Moderator",
-	[3968854760] = "Game Moderator",
-	[114812725] = "Game Moderator",
-	[81993536] = "Game Moderator",
-	[1004214871] = "Game Moderator",
-	[914847610] = "Game Moderator",
-	[3034930770] = "Game Moderator",
-	[1622256215] = "Game Moderator",
-	[1116486172] = "Game Moderator",
-	[4252853044] = "Game Moderator",
-	[2364950171] = "Game Moderator",
-	[1528346843] = "Game Moderator",
-	[165053216] = "Game Moderator",
-	[9024231578] = "Game Moderator",
-	[1127954045] = "Game Moderator",
-	[3640120679] = "Game Moderator",
-	[602009251] = "Game Moderator",
-	[372791101] = "Game Moderator",
-	[1378169111] = "Game Moderator",
-	[3020799797] = "Game Moderator",
-	[372528624] = "Game Moderator",
-	[2567998467] = "Game Moderator",
-	[4243907215] = "Game Moderator",
-	[813030262] = "Game Moderator",
-	[353983652] = "Game Moderator",
-	[1406181681] = "Game Moderator",
-	[2229169589] = "Game Moderator",
-	[30934698] = "Game Moderator",
-	[3004094651] = "Game Moderator",
-	[839333692] = "Game Moderator",
-	[979624578] = "Game Moderator",
-	[1478885961] = "Game Moderator",
-	[399754916] = "Game Moderator",
-	[1193091081] = "Game Moderator",
-	[4553863490] = "Game Moderator",
-	[4225513035] = "Game Moderator",
-	[41482597] = "Game Moderator",
-	[2924549627] = "Game Moderator",
-	[2732967856] = "Game Moderator",
-	[1937516999] = "Game Moderator",
-	[1374319325] = "Game Moderator",
-	[1058831985] = "Game Moderator",
-	[9621064456] = "Game Moderator",
-	[584370127] = "Game Moderator",
-	[174212818] = "Contribution",
-	[25548179] = "Lead Developer",
-	[363101315] = "Lead Developer",
-	[47983795] = "Co-Founder",
-	[16681869] = "Founder",
+	[51281722] = "Game Moderator", -- KittenBagelz
+	[7178750309] = "Game Moderator", -- Rikumah
+	[113179883] = "Game Moderator", -- DopeIlI
+	[3122439095] = "Game Moderator", -- chancerocke
+	[991290934] = "Game Moderator", -- Lexi34567812
+	[3968854760] = "Game Moderator", -- puferyba
+	[81993536] = "Game Moderator", -- aidenas2011
+	[1004214871] = "Game Moderator", -- owner12310
+	[3034930770] = "Game Moderator", -- Fan_hellrider
+	[2364950171] = "Game Moderator", -- ilovetowerbattle_9
+	[1528346843] = "Game Moderator", -- Hsixienn
+	[165053216] = "Game Moderator", -- coolboyofawsome4
+	[1127954045] = "Game Moderator", -- Kitty_1624
+	[3640120679] = "Game Moderator", -- GamerMauriiYT
+	[602009251] = "Game Moderator", -- Bajoogies_XD
+	[372791101] = "Game Moderator", -- Xion_Light
+	[1378169111] = "Game Moderator", -- Kaz_Elite
+	[3020799797] = "Game Moderator", -- hello_myfriends45
+	[2567998467] = "Game Moderator", -- joax009617
+	[4243907215] = "Game Moderator", -- AaronElagant
+	[353983652] = "Game Moderator", -- Puhgee
+	[1406181681] = "Game Moderator", -- roblox_23193
+	[2229169589] = "Game Moderator", -- fearedbyvamp
+	[3004094651] = "Game Moderator", -- harrib_allsack54321
+	[839333692] = "Game Moderator", -- Matheus06532
+	[979624578] = "Game Moderator", -- B_BEAMO
+	[1478885961] = "Game Moderator", -- fordjdj12
+	[399754916] = "Game Moderator", -- sirfluf
+	[1193091081] = "Game Moderator", -- Weerdeeg
+	[4553863490] = "Game Moderator", -- giovannirv2
+	[4225513035] = "Game Moderator", -- Waitwhatb40
+	[41482597] = "Game Moderator", -- kerub131
+	[2924549627] = "Game Moderator", -- rashhhh2
+	[2732967856] = "Game Moderator", -- DontTouchZGrass
+	[1937516999] = "Game Moderator", -- matheu09173
+	[1374319325] = "Game Moderator", -- jostjohnyca
+	[1058831985] = "Game Moderator", -- krisidisi23
+	[9621064456] = "Game Moderator", -- MetaSile
+	[584370127] = "Game Moderator", -- 1Newy1
+	[813030262] = "Game Moderator", -- Prye4
+	[3470393585] = "Game Moderator", -- k6ppo
+	[122915793] = "Game Moderator", -- LionTooth99999
+	[1534692727] = "Game Moderator", -- LUKASAJs
+	[7278178099] = "Game Moderator", -- thecarrotman513
+	[8593140875] = "Game Moderator", -- HurbertTheP3r73rt
+	[2525997354] = "Game Moderator", -- BlackWhiteYT11
+	[3126891654] = "Game Moderator", -- v6xzt
+	[1190967808] = "Game Moderator", -- djvdhshscshs
+	[833946684] = "Game Moderator", -- GamerGubbi
+	[202751467] = "Game Moderator", -- lumbers2
+	[510349404] = "Game Moderator", -- Kristian4209
+	[174212818] = "Contribution", -- YTGonzo
+	[25548179] = "Lead Developer", -- AsianAbrex
+	[363101315] = "Lead Developer", -- Warm_Vibes
+	[47983795] = "Co-Founder", -- ChickenBagelz
+	[16681869] = "Founder", -- neddleduck
 }
-Cheat.Offsets = {
-	["Base"] = memory.get_base_address(),
-	["DataSenderRate"] = memory.get_base_address() + 0x760a654,
-	["PhysicsSenderMaxBandwidthBps"] = memory.get_base_address() + 0x760a634,
-}
+
+-- offsets
+local Success, Response = pcall(function()
+	return Cache.HttpService:RequestAsync({
+		Method = "GET",
+		Url = "https://raw.githubusercontent.com/sigma4skin/rbxcli-offsets/refs/heads/main/Offsets.lua",
+	})
+end)
+
+if not Success or not Response or Response.StatusCode ~= 200 then
+	warn("Failed to grab offset loader")
+	return
+end
+
+Cheat.Offsets = rbxcli.loadstring(Response.Body)()
+Cheat.Offsets.Base = memory.get_base_address()
+
 Cheat.RaycastDistance = 1000
 Cheat.Directory = "SigmaFallenScript"
+
+Cheat.Fonts = {}
+Cheat.Fonts.Font20 = font.get_font_descriptor("Arial", 20)
+Cheat.Fonts.Font14 = font.get_font_descriptor("Arial", 14)
+
+Cheat.SoldierNames = {
+	Soldier = true,
+	Brutus = true,
+	Bruno = true,
+	Boris = true,
+	BTR = true,
+}
+Cheat.SoldierListCache = {}
+Cheat.SoldierCacheLastUpdate = 0
+Cheat.SOLDIER_CACHE_INTERVAL = 1
 
 -- create directory
 if not fs.is_directory(Cheat.Directory) then
 	pcall(fs.create_directory(Cheat.Directory))
 end
 
+-- whitelist system
+local WhiteListFilePath = Cheat.Directory .. "/whitelist.json"
+
+local function SaveWhiteList()
+	local Names = {}
+	for NameLower, OriginalName in pairs(Flags.WhiteListedPlayers) do
+		table.insert(Names, OriginalName)
+	end
+	local Json = Cache.HttpService:JSONEncode(Names)
+	pcall(function()
+		if not fs.is_file(WhiteListFilePath) then
+			fs.create_file(WhiteListFilePath)
+		end
+		fs.write_async(WhiteListFilePath, buffer.fromstring(Json))
+	end)
+end
+
+local function LoadWhiteList()
+	Flags.WhiteListedPlayers = {}
+	pcall(function()
+		if fs.is_file(WhiteListFilePath) then
+			local Data = fs.read_async(WhiteListFilePath)
+			if not Data then
+				return
+			end
+
+			local Str = buffer.tostring(Data)
+			local Names = Cache.HttpService:JSONDecode(Str)
+			if typeof(Names) == "table" then
+				for _, Name in ipairs(Names) do
+					if typeof(Name) == "string" and Name ~= "" then
+						Flags.WhiteListedPlayers[Name:lower()] = Name
+					end
+				end
+			end
+		end
+	end)
+end
+
+local function AddToWhiteList(PlayerName)
+	if not PlayerName or PlayerName == "" then
+		return false
+	end
+	local Key = PlayerName:lower()
+	if Flags.WhiteListedPlayers[Key] then
+		return false -- already whitelisted
+	end
+
+	-- try to resolve to an actual player in the server for exact name
+	local ResolvedName = PlayerName
+	for _, P in Cache.Players:GetPlayers() do
+		if P.Name:lower() == Key or P.DisplayName:lower() == Key then
+			ResolvedName = P.Name
+			break
+		end
+	end
+
+	Flags.WhiteListedPlayers[Key] = ResolvedName
+	SaveWhiteList()
+
+	return true
+end
+
+local function RemoveFromWhiteList(PlayerName)
+	if not PlayerName or PlayerName == "" then
+		return false
+	end
+	local Key = PlayerName:lower()
+	if not Flags.WhiteListedPlayers[Key] then
+		return false
+	end
+	Flags.WhiteListedPlayers[Key] = nil
+	SaveWhiteList()
+	return true
+end
+
+local function IsWhiteListed(Player)
+	if not Player then
+		return false
+	end
+	local NameLower = Player.Name:lower()
+	local DisplayLower = Player.DisplayName:lower()
+	return Flags.WhiteListedPlayers[NameLower] ~= nil or Flags.WhiteListedPlayers[DisplayLower] ~= nil
+end
+
+local function GetWhiteListString()
+	local Names = {}
+	for _, OriginalName in pairs(Flags.WhiteListedPlayers) do
+		table.insert(Names, OriginalName)
+	end
+	table.sort(Names, function(a, b)
+		return a:lower() < b:lower()
+	end)
+	if #Names == 0 then
+		return "None"
+	end
+	return table.concat(Names, ", ")
+end
+
+-- load saved whitelist on startup
+LoadWhiteList()
+-- end of whitelist shit
+
 -- gun mods
-local function ApplyNoRecoil()
-	for _, tbl in gc.getgc("table") do
-		pcall(function()
-			if tbl.Value and tbl.Value:ContainsKey("RecoilMult") then
-				tbl.Value.RecoilMult = -1
-			end
-		end)
+local function RefreshGunMods()
+	if not (Flags.NoRecoil or Flags.NoSpreadEnabled) then
+		return
 	end
-end
-
-local function DisableNoRecoil()
 	for _, tbl in gc.getgc("table") do
 		pcall(function()
-			if tbl.Value and tbl.Value:ContainsKey("RecoilMult") then
-				tbl.Value.RecoilMult = 1
+			local Value = tbl.Value
+			if not Value then
+				return
 			end
-		end)
-	end
-end
-
-local function ApplyNoSpread()
-	for _, tbl in gc.getgc("table") do
-		pcall(function()
-			if tbl.Value then
-				if tbl.Value:ContainsKey("AimSpreadMult") then
-					tbl.Value.AimSpreadMult = -1
+			if Flags.NoRecoil and Value:ContainsKey("RecoilMult") then
+				Value.RecoilMult = -1
+			end
+			if Flags.NoSpreadEnabled then
+				if Value:ContainsKey("AimSpreadMult") then
+					Value.AimSpreadMult = -1
 				end
-				if tbl.Value:ContainsKey("HipSpreadMult") then
-					tbl.Value.HipSpreadMult = -1
+				if Value:ContainsKey("HipSpreadMult") then
+					Value.HipSpreadMult = -1
 				end
 			end
 		end)
 	end
 end
 
-local function DisableNoSpread()
+local function RestoreGunMods(RestoreRecoil, RestoreSpread)
 	for _, tbl in gc.getgc("table") do
 		pcall(function()
-			if tbl.Value then
-				if tbl.Value:ContainsKey("AimSpreadMult") then
-					tbl.Value.AimSpreadMult = 1
+			local Value = tbl.Value
+			if not Value then
+				return
+			end
+			if RestoreRecoil and Value:ContainsKey("RecoilMult") then
+				Value.RecoilMult = 0
+			end
+			if RestoreSpread then
+				if Value:ContainsKey("AimSpreadMult") then
+					Value.AimSpreadMult = 0
 				end
-				if tbl.Value:ContainsKey("HipSpreadMult") then
-					tbl.Value.HipSpreadMult = 1
+				if Value:ContainsKey("HipSpreadMult") then
+					Value.HipSpreadMult = 0
 				end
 			end
 		end)
 	end
 end
+-- end of gun mods
 
 -- helper functions
 local function CalculateDrop(BulletSpeed, BulletGravity, Position, Origin)
@@ -207,6 +360,12 @@ local function CalculateTargetPosition(BulletSpeed, BulletGravity, Velocity, Pos
 	local MovePred = Velocity * ((Origin - Position).Magnitude / BulletSpeed)
 	local Drop = CalculateDrop(BulletSpeed, BulletGravity, Position, Origin)
 	return Position + Vector3.new(MovePred.X, MovePred.Y, MovePred.Z) + Vector3.new(0, Drop, 0)
+end
+
+local function CalculateTargetPositionNoYPred(BulletSpeed, BulletGravity, Velocity, Position, Origin)
+	local MovePred = Velocity * ((Origin - Position).Magnitude / BulletSpeed)
+	local Drop = CalculateDrop(BulletSpeed, BulletGravity, Position, Origin)
+	return Position + Vector3.new(MovePred.X, 0, MovePred.Z) + Vector3.new(0, Drop, 0)
 end
 
 local function GetCharacterParts(character)
@@ -264,6 +423,115 @@ local function IsTargetVisible(Character, TargetPart)
 	return false
 end
 
+local function IsVisibleFrom(Origin, TargetPart, TargetCharacter)
+	if not TargetPart or TargetPart:IsInvalidInstance() then
+		return false
+	end
+
+	local Direction = TargetPart.Position - Origin
+	local Filter = BuildVisFilter(TargetCharacter)
+	local Result = physics.raycast(Origin, Direction.Unit, Direction.Magnitude, Filter)
+
+	if not Result or not Result.hit_successful then
+		return true
+	end
+
+	local HitInstance = Result.Instance
+	if HitInstance then
+		local HitModel = HitInstance
+		while HitModel and not HitModel:IsA("Model") do
+			HitModel = HitModel.Parent
+		end
+		return HitModel == TargetCharacter
+	end
+
+	return false
+end
+
+-- only way i could think of doing manip externally without a debug lib
+local function FindManipulationPosition(Origin, TargetPart, TargetCharacter)
+	local EyeOffset = Vector3.new(0, 2.5, 0)
+
+	if IsVisibleFrom(Origin + EyeOffset, TargetPart, TargetCharacter) then
+		return Origin
+	end
+
+	for _, Radius in { 4, 8 } do
+		for I = 0, 7 do
+			local Angle = (I / 8) * math.pi * 2
+			local Candidate = Origin + Vector3.new(math.cos(Angle) * Radius, 0, math.sin(Angle) * Radius)
+			if IsVisibleFrom(Candidate + EyeOffset, TargetPart, TargetCharacter) then
+				return Candidate
+			end
+		end
+	end
+
+	return nil
+end
+
+local function DisableManip()
+	if not Flags.IsManipping then
+		return
+	end
+	Flags.IsManipping = false
+	Flags.ManipulationPosition = nil
+	if memory.is_enabled() then
+		memory.writei32(Cheat.Offsets.Base + Cheat.Offsets.FFlags.PhysicsSenderMaxBandwidthBps, 38760)
+		memory.writei32(Cheat.Offsets.Base + Cheat.Offsets.FFlags.DataSenderRate, 60)
+	end
+end
+
+local function ResolveTargetPart(Character, Head, HumanoidRootPart)
+	local MousePos = Cache.UserInputService:GetMouseLocation()
+	local TargetPartName = Flags.AimbotTargetPart
+
+	if TargetPartName == "HumanoidRootPart" then
+		return HumanoidRootPart or Head
+	elseif TargetPartName == "Closest" then
+		local ClosestPartDist = math.huge
+		local ClosestPart = Head
+		for _, Part in Character:GetChildren() do
+			if not Part:IsA("BasePart") then
+				continue
+			end
+			local PartScreen, PartOnScreen = rendering.world_to_screen(Part.Position)
+			if not PartOnScreen then
+				continue
+			end
+			local PartDist = (PartScreen - MousePos).Magnitude
+			if PartDist < ClosestPartDist then
+				ClosestPartDist = PartDist
+				ClosestPart = Part
+			end
+		end
+		return ClosestPart
+	else
+		return Head
+	end
+end
+
+local function AiList()
+	Cheat.SoldierListCache = {}
+	local Military = Cache.Workspace:FindFirstChild("Military")
+	if Military then
+		for _, Folder in Military:GetChildren() do
+			for _, Soldier in Folder:GetChildren() do
+				if Soldier:IsA("Model") and Cheat.SoldierNames[Soldier.Name] then
+					table.insert(Cheat.SoldierListCache, Soldier)
+				end
+			end
+		end
+	end
+	local Events = Cache.Workspace:FindFirstChild("Events")
+	if Events then
+		for _, Obj in Events:GetChildren() do
+			if Obj:IsA("Model") and Cheat.SoldierNames[Obj.Name] then
+				table.insert(Cheat.SoldierListCache, Obj)
+			end
+		end
+	end
+end
+
 local function FindClosestViableTarget()
 	local ClosestTarget
 	local ClosestDistance = math.huge
@@ -274,18 +542,26 @@ local function FindClosestViableTarget()
 		if Player == Cache.Client then
 			continue
 		end
+
+		if IsWhiteListed(Player) then
+			continue
+		end
+
 		local Character = Player.Character
 		if not Character then
 			continue
 		end
+
 		local Head = Character:FindFirstChild("Head")
 		if not Head then
 			continue
 		end
+
 		local Humanoid = Character:FindFirstChild("Humanoid")
 		if not Humanoid or Humanoid.Health <= 0 then
 			continue
 		end
+
 		local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
 		if not HumanoidRootPart then
 			continue
@@ -318,32 +594,7 @@ local function FindClosestViableTarget()
 		end
 
 		if Distance < ClosestDistance then
-			local TargetPart
-			local TargetPartName = Flags.AimbotTargetPart
-
-			if TargetPartName == "Head" then
-				TargetPart = Head
-			elseif TargetPartName == "HumanoidRootPart" then
-				TargetPart = HumanoidRootPart
-			elseif TargetPartName == "Closest" then
-				local ClosestPartDist = math.huge
-				for _, Part in Character:GetChildren() do
-					if not Part:IsA("BasePart") then
-						continue
-					end
-					local PartScreen, PartOnScreen = rendering.world_to_screen(Part.Position)
-					if not PartOnScreen then
-						continue
-					end
-
-					local PartDist = (PartScreen - MousePos).Magnitude
-					if PartDist < ClosestPartDist then
-						ClosestPartDist = PartDist
-						TargetPart = Part
-					end
-				end
-				TargetPart = TargetPart or Head
-			end
+			local TargetPart = ResolveTargetPart(Character, Head, HumanoidRootPart)
 
 			if Flags.AimbotVisCheck and not IsTargetVisible(Character, TargetPart) then
 				continue
@@ -363,6 +614,70 @@ local function FindClosestViableTarget()
 		end
 	end
 
+	if Flags.TargetNpcs then
+		local Now = os.clock()
+		if Now - Cheat.SoldierCacheLastUpdate >= Cheat.SOLDIER_CACHE_INTERVAL then
+			Cheat.SoldierCacheLastUpdate = Now
+			AiList()
+		end
+
+		for _, Soldier in Cheat.SoldierListCache do
+			if not Soldier or not Soldier.Parent then
+				continue
+			end
+
+			local Head = Soldier:FindFirstChild("Head")
+			if not Head then
+				continue
+			end
+
+			local Humanoid = Soldier:FindFirstChild("Humanoid")
+			if not Humanoid or Humanoid.Health <= 0 then
+				continue
+			end
+
+			local HumanoidRootPart = Soldier:FindFirstChild("HumanoidRootPart")
+			if not HumanoidRootPart then
+				continue
+			end
+
+			if LocalRoot and (LocalRoot.Position - Head.Position).Magnitude > Flags.AimbotMaxDistance then
+				continue
+			end
+
+			local ScreenPos, OnScreen = rendering.world_to_screen(Head.Position)
+			if not OnScreen then
+				continue
+			end
+
+			local Distance = (ScreenPos - MousePos).Magnitude
+			if Flags.AimbotFovCheck and Distance > Flags.AimbotFov then
+				continue
+			end
+
+			if Distance < ClosestDistance then
+				local TargetPart = ResolveTargetPart(Soldier, Head, HumanoidRootPart)
+
+				if Flags.AimbotVisCheck and not IsTargetVisible(Soldier, TargetPart) then
+					continue
+				end
+
+				ClosestDistance = Distance
+				ClosestTarget = {
+					Player = nil,
+					Character = Soldier,
+					Head = Head,
+					HumanoidRootPart = HumanoidRootPart,
+					Humanoid = Humanoid,
+					TargetPart = TargetPart,
+					ScreenDistance = Distance,
+					ScreenPos = Vector2.new(ScreenPos.X, ScreenPos.Y),
+					IsNpc = true,
+				}
+			end
+		end
+	end
+
 	return ClosestTarget
 end
 
@@ -370,16 +685,18 @@ local function GetHeldWeapon(character)
 	if not character then
 		return "None"
 	end
+	if character:IsInvalidInstance() then
+		return "None"
+	end
+
 	for _, model in character:GetChildren() do
-		if not model:IsA("Model") then
+		if model:IsInvalidInstance() or not model:IsA("Model") then
 			continue
 		end
 		if model.Name == "Hair" or model.Name == "HolsterModel" then
 			continue
 		end
-		if not model.PrimaryPart then
-			continue
-		end
+
 		if
 			model:FindFirstChild("Detail")
 			or model:FindFirstChild("Main")
@@ -403,75 +720,6 @@ end
 -- end of helper functions
 
 -- helper functions for ui callbacks
-local font20 = font.get_font_descriptor("Arial", 20)
-
--- plant cache
-local PlantCache = {}
-local plantConfig = {
-	["Wool Plant"] = { flag = "WoolPlantESP", col = Color4.new(1, 1, 1, 1) },
-	["Tomato Plant"] = { flag = "TomatoPlantESP", col = Color4.new(1, 0.2, 0.2, 1) },
-	["Raspberry Plant"] = { flag = "RaspberryPlantESP", col = Color4.new(0.9, 0.1, 0.4, 1) },
-	["Blueberry Plant"] = { flag = "BlueberryPlantESP", col = Color4.new(0.2, 0.4, 1, 1) },
-	["Lemon Plant"] = { flag = "LemonPlantESP", col = Color4.new(1, 1, 0.2, 1) },
-	["Corn Plant"] = { flag = "CornPlantESP", col = Color4.new(1, 0.85, 0.1, 1) },
-	["Pumpkin Plant"] = { flag = "PumpkinPlantESP", col = Color4.new(1, 0.5, 0.1, 1) },
-}
-
-local function GetPart(plant)
-	if plant:IsA("BasePart") then
-		return plant
-	end
-	if plant:IsA("Model") then
-		return plant.PrimaryPart or plant:FindFirstChildWhichIsA("BasePart")
-	end
-	return nil
-end
-
-local function RegisterPlant(plant)
-	local cfg = plantConfig[plant.Name]
-	if not cfg then
-		return
-	end
-	local part = GetPart(plant)
-	if not part or part:IsInvalidInstance() then
-		return
-	end
-	-- pre-build label so we never concat static parts in the render loop
-	PlantCache[plant] = { part = part, flag = cfg.flag, col = cfg.col, label = plant.Name }
-end
-
-local function UnregisterPlant(plant)
-	PlantCache[plant] = nil
-end
-
-do
-	local workspace = game:GetService("Workspace")
-	local plants = workspace:FindFirstChild("Plants")
-	if plants and not plants:IsInvalidInstance() then
-		for _, plant in pairs(plants:GetChildren()) do
-			RegisterPlant(plant)
-		end
-		pcall(function()
-			plants.ChildAdded:Connect(RegisterPlant)
-			plants.ChildRemoved:Connect(UnregisterPlant)
-		end)
-	else
-		pcall(function()
-			workspace.ChildAdded:Connect(function(child)
-				if child.Name ~= "Plants" or child:IsInvalidInstance() then
-					return
-				end
-				for _, plant in pairs(child:GetChildren()) do
-					RegisterPlant(plant)
-				end
-				pcall(function()
-					child.ChildAdded:Connect(RegisterPlant)
-					child.ChildRemoved:Connect(UnregisterPlant)
-				end)
-			end)
-		end)
-	end
-end
 
 local function OnModCheckerToggle(bool, ModCheckerDropdown)
 	Flags.ModChecker = bool
@@ -498,6 +746,7 @@ local function OnModCheckerToggle(bool, ModCheckerDropdown)
 		rbxcli.display_notification("No moderators found in server", 5)
 	end
 end
+-- end of ui helper functions
 
 -- ui
 local gui = rbxcli_gui
@@ -506,6 +755,8 @@ local AimbotTab = gui.add_tab("Combat", { icon = Enum.TabIcon.Crosshair, after =
 -- keybind controls, declared here so the main loops below can reference them
 local AimbotKeybind
 local DesyncKeybind
+local FreecamKeybind
+local FakeLagKeybind
 
 do
 	local AimbotCategory = AimbotTab:add_category("Aimbot")
@@ -514,6 +765,7 @@ do
 	local SafezoneToggle
 	local TargetPartDropdown
 	local VisCheckToggle
+	local TargetNpcsToggle
 
 	AimbotCategory:add_toggle("Aimbot", false, function(bool)
 		Flags.Aimbot = bool
@@ -523,6 +775,7 @@ do
 		TargetPartDropdown:set_visible(bool)
 		AimbotKeybind:set_visible(bool)
 		VisCheckToggle:set_visible(bool)
+		TargetNpcsToggle:set_visible(bool)
 	end)
 	AimbotKeybind = AimbotCategory:add_keybind(
 		"Keybind",
@@ -531,6 +784,22 @@ do
 		function(k) end
 	)
 	AimbotKeybind:set_visible(false)
+
+	local ManipulationKeybind
+	AimbotCategory:add_toggle("Manipulation", false, function(bool)
+		Flags.AimbotManipulation = bool
+		ManipulationKeybind:set_visible(bool)
+	end)
+	ManipulationKeybind = AimbotCategory:add_keybind(
+		"Keybind",
+		Enum.KeyCode.C,
+		Enum.KeybindMode.PressAndHold,
+		function(k) end
+	)
+	ManipulationKeybind:on_activated(function(active)
+		Flags.AimbotManipulationActive = active
+	end)
+	ManipulationKeybind:set_visible(false)
 
 	-- on activated behvaior
 	AimbotKeybind:on_activated(function(active)
@@ -557,6 +826,10 @@ do
 		Flags.AimbotMaxDistance = v
 		Flags.LockedTarget = nil
 	end)
+	TargetNpcsToggle = AimbotCategory:add_toggle("Target NPCS", false, function(Bool)
+		Flags.TargetNpcs = Bool
+	end)
+	TargetNpcsToggle:set_visible(false)
 	MaxDistanceSlider:set_visible(false)
 	VisCheckToggle = AimbotCategory:add_toggle("Visible Check", false, function(bool)
 		Flags.AimbotVisCheck = bool
@@ -591,19 +864,37 @@ do
 	GunModsCategory:add_toggle("No Recoil", false, function(bool)
 		Flags.NoRecoil = bool
 		if bool then
-			ApplyNoRecoil()
+			RefreshGunMods()
 		else
-			DisableNoRecoil()
+			RestoreGunMods(true, false)
 		end
 	end)
 	GunModsCategory:add_toggle("No Spread", false, function(bool)
 		Flags.NoSpreadEnabled = bool
 		if bool then
-			ApplyNoSpread()
+			RefreshGunMods()
 		else
-			DisableNoSpread()
+			RestoreGunMods(false, true)
 		end
 	end)
+end
+
+do
+	local LastGunModWeapon = nil
+	local LastGunModRefresh = 0
+	-- Cache.RunService.Heartbeat:Connect(function() -- forgot this caused big fps whoops
+	-- 	if not (Flags.NoRecoil or Flags.NoSpreadEnabled) then
+	-- 		LastGunModWeapon = nil
+	-- 		return
+	-- 	end
+	-- 	local Now = os.clock()
+	-- 	local Weapon = GetHeldWeapon(Cache.Character)
+	-- 	if Weapon ~= LastGunModWeapon or Now - LastGunModRefresh > 0.25 then
+	-- 		LastGunModWeapon = Weapon
+	-- 		LastGunModRefresh = Now
+	-- 		RefreshGunMods()
+	-- 	end
+	-- end)
 end
 
 local MovementTab = gui.add_tab("Movement", { icon = Enum.TabIcon.Human, after = "after" })
@@ -611,53 +902,197 @@ local MovementTab = gui.add_tab("Movement", { icon = Enum.TabIcon.Human, after =
 do
 	local MovementCategory = MovementTab:add_category("Movement")
 	local FlySpeedSlider
-	--local InfiniteFlyToggle
+	local InfiniteFlyToggle
+
 	MovementCategory:add_toggle("Fly", false, function(bool)
 		Flags.Fly = bool
 		FlySpeedSlider:set_visible(bool)
-		--InfiniteFlyToggle:set_visible(bool)
+		InfiniteFlyToggle:set_visible(bool)
 	end)
 	FlySpeedSlider = MovementCategory:add_slider("Fly Speed", 1, 7, 5, Enum.SliderValueType.Int, function(v)
 		Flags.FlySpeed = v
 	end)
 	FlySpeedSlider:set_visible(false)
-	--[[
+
 	InfiniteFlyToggle = MovementCategory:add_toggle("Infinite Fly", false, function(bool)
 		Flags.InfiniteFly = bool
 	end)
-	--]]
-	--InfiniteFlyToggle:set_visible(false)
+
+	InfiniteFlyToggle:set_visible(false)
 end
 
 do
 	local DesyncCategory = MovementTab:add_category("Desync")
-	local DesyncKeyBind
+	local FakeLagIntervalSlider
+
 	DesyncCategory:add_toggle("Desync", false, function(bool)
 		Flags.Desync = bool
-		DesyncKeyBind:set_visible(bool)
+		DesyncKeybind:set_visible(bool)
 	end)
-	DesyncKeyBind = DesyncCategory:add_keybind("Keybind", Enum.KeyCode.T, Enum.KeybindMode.Toggle, function(k) end)
-	DesyncKeyBind:on_activated(function(active)
-		if active then
+	DesyncKeybind = DesyncCategory:add_keybind("Keybind", Enum.KeyCode.T, Enum.KeybindMode.Toggle, function(k) end)
+	DesyncKeybind:on_activated(function(active)
+		if active and Flags.Desync then
 			Flags.DesyncActive = true
 			if memory.is_enabled() then
-				memory.writei32(Cheat.Offsets["PhysicsSenderMaxBandwidthBps"], -9999)
-				memory.writei32(Cheat.Offsets["DataSenderRate"], 60)
-				Flags.DesyncPosition = Cache.Camera.CFrame.Position
+				memory.writei32(Cheat.Offsets.Base + Cheat.Offsets.FFlags.PhysicsSenderMaxBandwidthBps, -9999)
+				memory.writei32(Cheat.Offsets.Base + Cheat.Offsets.FFlags.DataSenderRate, 60)
+				Flags.DesyncPosition = Cache.Character:FindFirstChild("HumanoidRootPart").Position
 				Flags.DesyncEnabled = true
 			end
 		else
 			Flags.DesyncActive = false
 			if memory.is_enabled() then
-				memory.writei32(Cheat.Offsets["PhysicsSenderMaxBandwidthBps"], 38760)
+				memory.writei32(Cheat.Offsets.Base + Cheat.Offsets.FFlags.PhysicsSenderMaxBandwidthBps, 38760)
 				Flags.DesyncPosition = nil
 				Flags.DesyncEnabled = false
 			end
 		end
 	end)
-	DesyncKeyBind:set_visible(false)
-	-- store so we can call is_active later
-	DesyncKeybind = DesyncKeyBind
+	DesyncKeybind:set_visible(false)
+
+	DesyncCategory:add_separator()
+
+	DesyncCategory:add_toggle("Fake Lag", false, function(Bool)
+		Flags.FakeLag = Bool
+		FakeLagKeybind:set_visible(Bool)
+		FakeLagIntervalSlider:set_visible(Bool)
+	end)
+
+	FakeLagKeybind = DesyncCategory:add_keybind("Keybind", Enum.KeyCode.Y, Enum.KeybindMode.Toggle, function(K) end)
+	FakeLagKeybind:set_visible(false)
+
+	FakeLagKeybind:on_activated(function(Active)
+		Flags.FakeLagActive = Active
+
+		if not Active then
+			Cheat.FakeLagLastToggle = nil
+			Cheat.FakeLagState = nil
+			if memory.is_enabled() then
+				memory.writei32(Cheat.Offsets.Base + Cheat.Offsets.FFlags.PhysicsSenderMaxBandwidthBps, 38760)
+				memory.writei32(Cheat.Offsets.Base + Cheat.Offsets.FFlags.DataSenderRate, 60)
+			end
+		end
+	end)
+
+	FakeLagIntervalSlider = DesyncCategory:add_slider(
+		"Interval",
+		0.1,
+		0.75,
+		0.35,
+		Enum.SliderValueType.Float,
+		function(V)
+			Flags.FakeLagInterval = V
+		end
+	)
+	FakeLagIntervalSlider:set_visible(false)
+end
+
+do
+	--[[
+	local FreecamCategory = MovementTab:add_category("Freecam")
+	local FreecamSpeedSlider
+	local FreecamBtrTeleportToggle
+
+	FreecamCategory:add_toggle("Freecam", false, function(Bool)
+		Flags.Freecam = Bool
+		FreecamKeybind:set_visible(Bool)
+		FreecamSpeedSlider:set_visible(Bool)
+		FreecamBtrTeleportToggle:set_visible(Bool)
+	end)
+
+	FreecamSpeedSlider = FreecamCategory:add_slider("Speed", 1, 20, 5, Enum.SliderValueType.Int, function(V)
+		Flags.FreecamSpeed = V
+	end)
+	FreecamSpeedSlider:set_visible(false)
+
+	FreecamKeybind = FreecamCategory:add_keybind(
+		"Keybind",
+		Enum.KeyCode.L,
+		Enum.KeybindMode.Toggle,
+		function(KeyCode) end
+	)
+	FreecamKeybind:set_visible(false)
+	FreecamKeybind:on_activated(function(Active)
+		Flags.FreecamActive = Active
+	end)
+
+	FreecamBtrTeleportToggle = FreecamCategory:add_toggle("BTR Teleport", false, function(Bool)
+		Flags.FreecamBtrTeleport = Bool
+	end)
+	FreecamBtrTeleportToggle:set_visible(false)
+	--]]
+end
+
+do
+	local NoClipCategory = MovementTab:add_category("No Clip")
+
+	NoClipCategory:add_toggle("Card No Clip", false, function(Bool)
+		Flags.CardNoClip = Bool
+
+		for _, Part in Cache.Workspace.RocketFactoryPinkCardInvisWalls:GetChildren() do
+			if Part:IsA("MeshPart") then
+				Part.CanCollide = not Bool
+			end
+		end
+
+		for _, Part in Cache.Workspace.Monuments:GetDescendants() do
+			if Part:IsA("MeshPart") and Part.Name:find("FallenShippingContainer") then
+				Part.CanCollide = not Bool
+			end
+		end
+	end)
+	--[[
+	Cache.Workspace.RocketFactoryPinkCardInvisWalls.ChildAdded:Connect(function(Part)
+		Part.CanCollide = not Flags.CardNoClip
+	end)
+
+	Cache.Workspace.Monuments.DescendantAdded:Connect(function(Part)
+		if Part:IsA("MeshPart") and Part.Name:find("FallenShippingContainer") then
+			Part.CanCollide = not Flags.CardNoClip
+		end
+	end)
+	--]]
+end
+
+do
+	local AntiAimCategory = MovementTab:add_category("Anti Aim")
+
+	local AntiAimYawSpeedSlider
+	local AntiAimYawDropdown
+	local AntiAimYawMinSlider
+	local AntiAimYawMaxSlider
+
+	AntiAimCategory:add_toggle("Yaw", false, function(Bool)
+		Flags.YawEnabled = Bool
+		AntiAimYawSpeedSlider:set_visible(Bool)
+		AntiAimYawDropdown:set_visible(Bool)
+		AntiAimYawMinSlider:set_visible(Bool)
+		AntiAimYawMaxSlider:set_visible(Bool)
+	end)
+
+	AntiAimYawSpeedSlider = AntiAimCategory:add_slider("Speed", 1, 100, 50, Enum.SliderValueType.Int, function(V)
+		Flags.YawSpeed = V
+	end)
+	AntiAimYawSpeedSlider:set_visible(false)
+
+	AntiAimYawDropdown = AntiAimCategory:add_dropdown("Type", { "Jitter", "Spin" }, 0, function(V)
+		if V == 0 then
+			Flags.YawType = "Jitter"
+		elseif V == 1 then
+			Flags.YawType = "Spin"
+		end
+	end)
+	AntiAimYawDropdown:set_visible(false)
+
+	AntiAimYawMinSlider = AntiAimCategory:add_slider("Min", -180, 180, 0, Enum.SliderValueType.Int, function(V)
+		Flags.YawMin = V
+	end)
+	AntiAimYawMinSlider:set_visible(false)
+
+	AntiAimYawMaxSlider = AntiAimCategory:add_slider("Max", -180, 180, 0, Enum.SliderValueType.Int, function(V)
+		Flags.YawMax = V
+	end)
+	AntiAimYawMaxSlider:set_visible(false)
 end
 
 local VisualsTab = gui.add_tab("ESP", { icon = Enum.TabIcon.Eye, after = "after" })
@@ -665,12 +1100,29 @@ local VisualsTab = gui.add_tab("ESP", { icon = Enum.TabIcon.Eye, after = "after"
 -- loot esp
 do
 	local LootCategory = VisualsTab:add_category("Loot")
-	LootCategory:add_toggle("Dropped Items ESP", false, function(bool)
+
+	local DroppedItemsSlider
+	local BodybagSlider
+
+	LootCategory:add_toggle("Dropped Items", false, function(bool)
 		Flags.ItemESP = bool
+		DroppedItemsSlider:set_visible(bool)
 	end)
-	LootCategory:add_slider("Distance", 50, 1000, 500, Enum.SliderValueType.Int, function(v)
+	DroppedItemsSlider = LootCategory:add_slider("Distance", 50, 1000, 500, Enum.SliderValueType.Int, function(v)
 		Flags.ItemESPDistance = v
 	end)
+	DroppedItemsSlider:set_visible(false)
+
+	LootCategory:add_separator()
+
+	LootCategory:add_toggle("Bodybags", false, function(Bool)
+		Flags.BodybagESP = Bool
+		BodybagSlider:set_visible(Bool)
+	end)
+	BodybagSlider = LootCategory:add_slider("Distance", 50, 1000, 500, Enum.SliderValueType.Int, function(V)
+		Flags.BodybagESPDistance = V
+	end)
+	BodybagSlider:set_visible(false)
 end
 
 -- node esp
@@ -690,35 +1142,6 @@ do
 	end)
 end
 
--- plant esp
-do
-	local PlantCategory = VisualsTab:add_category("Plants")
-	PlantCategory:add_toggle("Wool Plant ESP", false, function(bool)
-		Flags.WoolPlantESP = bool
-	end)
-	PlantCategory:add_toggle("Tomato Plant ESP", false, function(bool)
-		Flags.TomatoPlantESP = bool
-	end)
-	PlantCategory:add_toggle("Raspberry Plant ESP", false, function(bool)
-		Flags.RaspberryPlantESP = bool
-	end)
-	PlantCategory:add_toggle("Blueberry Plant ESP", false, function(bool)
-		Flags.BlueberryPlantESP = bool
-	end)
-	PlantCategory:add_toggle("Lemon Plant ESP", false, function(bool)
-		Flags.LemonPlantESP = bool
-	end)
-	PlantCategory:add_toggle("Corn Plant ESP", false, function(bool)
-		Flags.CornPlantESP = bool
-	end)
-	PlantCategory:add_toggle("Pumpkin Plant ESP", false, function(bool)
-		Flags.PumpkinPlantESP = bool
-	end)
-	PlantCategory:add_slider("Plant Distance", 50, 1000, 500, Enum.SliderValueType.Int, function(v)
-		Flags.PlantESPDistance = v
-	end)
-end
-
 -- player esp
 do
 	local LimitDistance
@@ -727,25 +1150,54 @@ do
 	PlayerEspCategory:add_toggle("Armor Viewer", false, function(bool)
 		Flags.ArmorViewer = bool
 	end)
-	PlayerEspCategory:add_toggle("Held Item", false, function(bool)
-		Flags.HeldItemEsp = bool
+	-- PlayerEspCategory:add_toggle("Held Item", false, function(bool)
+	-- 	Flags.HeldItemEsp = bool
+	-- end)
+	PlayerEspCategory:add_toggle("Box", false, function(bool)
+		Flags.BoxEsp = bool
 	end)
-	PlayerEspCategory:add_slider("Limit Distance", 50, 1000, 500, Enum.SliderValueType.Int, function(v)
+	PlayerEspCategory:add_toggle("Name", false, function(bool)
+		Flags.NameEsp = bool
+	end)
+	local HealthBarSideDropdown
+	PlayerEspCategory:add_toggle("Health Bar", false, function(bool)
+		Flags.HealthBarEsp = bool
+		HealthBarSideDropdown:set_visible(bool)
+	end)
+	HealthBarSideDropdown = PlayerEspCategory:add_dropdown(
+		"Health Bar Side",
+		{ "Left", "Right", "Top", "Bottom" },
+		0,
+		function(v)
+			Flags.HealthBarSide = ({ "Left", "Right", "Top", "Bottom" })[v + 1]
+		end
+	)
+	HealthBarSideDropdown:set_visible(false)
+	PlayerEspCategory:add_toggle("Distance", false, function(bool)
+		Flags.DistanceEsp = bool
+	end)
+	PlayerEspCategory:add_toggle("Weapon", false, function(bool)
+		Flags.WeaponEsp = bool
+	end)
+	PlayerEspCategory:add_toggle("Team Check", false, function(bool)
+		Flags.TeamCheck = bool
+	end)
+	PlayerEspCategory:add_toggle("NPC", false, function(bool)
+		Flags.AiEsp = bool
+	end)
+	PlayerEspCategory:add_slider("Limit Distance", 50, 1500, 500, Enum.SliderValueType.Int, function(v)
 		Flags.PlayerLimitDistance = v
 	end)
 end
 
--- misc tab
-local MiscTab = gui.add_tab("Misc", { icon = Enum.TabIcon.Code, after = "after" })
-
 do
-	local ModCheckerCategory = MiscTab:add_category("Mod Checker")
+	local MiscCategory = MovementTab:add_category("Misc")
 	Flags.ModCheck = "Notify"
 	local ModCheckerDropdown
-	ModCheckerCategory:add_toggle("Mod Checker", false, function(bool)
+	MiscCategory:add_toggle("Mod Checker", false, function(bool)
 		OnModCheckerToggle(bool, ModCheckerDropdown)
 	end)
-	ModCheckerDropdown = ModCheckerCategory:add_dropdown("Behavior", { "Notify", "Kick" }, 0, function(v)
+	ModCheckerDropdown = MiscCategory:add_dropdown("Behavior", { "Notify", "Kick" }, 0, function(v)
 		if v == 0 then
 			Flags.ModCheck = "Notify"
 		elseif v == 1 then
@@ -753,6 +1205,51 @@ do
 		end
 	end)
 	ModCheckerDropdown:set_visible(false)
+
+	MiscCategory:add_separator()
+
+	-- text input to add player
+	local NameInput = MiscCategory:add_input("Name", "", 256, function() end)
+
+	-- button to add player
+	MiscCategory:add_button("Add Player", function()
+		local Text = NameInput:get_text()
+		if Text and Text ~= "" then
+			local Success = AddToWhiteList(Text)
+			if Success then
+				rbxcli.display_notification("Removed '" .. Text .. "' from whitelist", 3)
+			else
+				rbxcli.display_notification("'" .. Text .. "' is not in whitelist", 3)
+			end
+		end
+	end)
+
+	-- button to remove player
+	MiscCategory:add_button("Remove Player", function()
+		local Text = NameInput:get_text()
+		if Text and Text ~= "" then
+			local Success = RemoveFromWhiteList(Text)
+			if Success then
+				rbxcli.display_notification("Added '" .. Text .. "' to whitelist", 3)
+			else
+				rbxcli.display_notification("'" .. Text .. "' is already whitelisted", 3)
+			end
+		end
+	end)
+
+	-- button to clear entire whitelist
+	MiscCategory:add_button("Clear WhiteList", function()
+		Flags.WhiteListedPlayers = {}
+		SaveWhiteList()
+		Flags.LockedTarget = nil
+		rbxcli.display_notification("Whitelist cleared", 3)
+	end)
+
+	-- list current whitelisted
+	MiscCategory:add_button("Show Whitelist", function()
+		local list = GetWhiteListString()
+		rbxcli.display_notification("Whitelisted: " .. list, 7)
+	end)
 end
 -- end of ui
 
@@ -811,7 +1308,8 @@ do
 					return
 				end
 				local TargetPos = ResolvedPart.Position
-				local Info = GetBulletInfo(GetHeldWeapon(Cache.Character))
+				local HeldWeapon = GetHeldWeapon(Cache.Character)
+				local Info = GetBulletInfo(HeldWeapon)
 				if not Info then
 					return
 				end
@@ -825,13 +1323,23 @@ do
 					)
 					TargetPos = ResolvedPart.Position + Vector3.new(0, Drop, 0)
 				else
-					TargetPos = CalculateTargetPosition(
-						Info.Speed,
-						Info.Gravity,
-						ResolvedPart.Velocity,
-						ResolvedPart.Position,
-						Cache.Camera.CFrame.Position
-					)
+					if HeldWeapon == "Bow" or HeldWeapon == "Crossbow" then
+						TargetPos = CalculateTargetPositionNoYPred(
+							Info.Speed,
+							Info.Gravity,
+							ResolvedPart.Velocity,
+							ResolvedPart.Position,
+							Cache.Camera.CFrame.Position
+						)
+					else
+						TargetPos = CalculateTargetPosition(
+							Info.Speed,
+							Info.Gravity,
+							ResolvedPart.Velocity,
+							ResolvedPart.Position,
+							Cache.Camera.CFrame.Position
+						)
+					end
 				end
 				Cache.Camera.CFrame = CFrame.lookAt(Cache.Camera.CFrame.Position, TargetPos)
 			end
@@ -991,6 +1499,8 @@ do
 		end
 
 		local WeaponCache = {} -- [Player] = { Weapon = string, Connection = EventConnection }
+		local HealthAnim = {}
+		local LastEspClock = 0
 
 		-- player list cache (refreshed on player added/removed)
 		local PlayerListCache = {}
@@ -1030,6 +1540,140 @@ do
 		local SlotCacheLastUpdate = 0
 		local WEAPON_CACHE_INTERVAL = 1 -- refresh weapon cache every second (if your looking at these and your fps is shit change these)
 		local SLOT_CACHE_INTERVAL = 1 -- refresh slot cache every second
+
+		local function Espify(Char, DisplayName, Key, CamPos, MaxDist, EspDelta, White)
+			if not Char or Char:IsInvalidInstance() then
+				return
+			end
+
+			local Humanoid = Char:FindFirstChild("Humanoid")
+			if not Humanoid or Humanoid.Health <= 0 then
+				return
+			end
+
+			local Head = Char:FindFirstChild("Head")
+			local Root = Char:FindFirstChild("HumanoidRootPart")
+			if not Head or not Root or Head:IsInvalidInstance() or Root:IsInvalidInstance() then
+				return
+			end
+
+			if (CamPos - Root.Position).Magnitude > MaxDist then
+				return
+			end
+
+			local Up = Root.CFrame.UpVector
+			local TopPos, TopVis = rendering.world_to_screen(Head.Position + Up * 1.2)
+			local BottomPos, BottomVis = rendering.world_to_screen(Root.Position - Up * 2.5)
+			if not (TopVis or BottomVis) then
+				return
+			end
+
+			local Height = math.abs(BottomPos.Y - TopPos.Y)
+			local Width = math.max(Height / 1.5, 6)
+			local BoxX = math.floor(TopPos.X - Width / 2)
+			local BoxY = math.floor(TopPos.Y)
+			local BoxW = math.ceil(Width)
+			local BoxH = math.ceil(Height)
+			local BoxRight = BoxX + BoxW
+			local BoxBottom = BoxY + BoxH
+			local CenterX = BoxX + BoxW / 2
+
+			local HealthPerc = math.clamp(Humanoid.Health / Humanoid.MaxHealth, 0, 1)
+			local PrevPerc = HealthAnim[Key] or HealthPerc
+			local AnimPerc = PrevPerc + (HealthPerc - PrevPerc) * (1 - math.exp(-EspDelta * 12))
+			HealthAnim[Key] = AnimPerc
+
+			local TopOff, BotOff = 0, 0
+
+			if Flags.HealthBarEsp then
+				local HealthColor = Color4.new(1 - AnimPerc, AnimPerc, 0, 1)
+				local Side = Flags.HealthBarSide or "Left"
+				if Side == "Top" then
+					TopOff = 12
+					local BarY = BoxY - 5
+					immediate.rectangle(
+						Vector2.new(BoxX, BarY),
+						Vector2.new(BoxX + AnimPerc * BoxW, BarY + 1),
+						0,
+						true,
+						true,
+						HealthColor
+					)
+				elseif Side == "Bottom" then
+					BotOff = 12
+					local BarY = BoxBottom + 5
+					immediate.rectangle(
+						Vector2.new(BoxX, BarY),
+						Vector2.new(BoxX + AnimPerc * BoxW, BarY + 1),
+						0,
+						true,
+						true,
+						HealthColor
+					)
+				elseif Side == "Right" then
+					local BarX = BoxRight + 5
+					immediate.rectangle(
+						Vector2.new(BarX, BoxBottom - AnimPerc * BoxH),
+						Vector2.new(BarX + 1, BoxBottom),
+						0,
+						true,
+						true,
+						HealthColor
+					)
+				else
+					local BarX = BoxX - 5
+					immediate.rectangle(
+						Vector2.new(BarX, BoxBottom - AnimPerc * BoxH),
+						Vector2.new(BarX + 1, BoxBottom),
+						0,
+						true,
+						true,
+						HealthColor
+					)
+				end
+			end
+
+			if Flags.BoxEsp then
+				immediate.rectangle(Vector2.new(BoxX, BoxY), Vector2.new(BoxRight, BoxBottom), 0, false, true, White)
+			end
+
+			if Flags.NameEsp then
+				local NameSize = immediate.calculate_text_size(DisplayName, Cheat.Fonts.Font14)
+				immediate.text(
+					Vector2.new(CenterX - NameSize.X / 2, BoxY - 16 - TopOff),
+					DisplayName,
+					Cheat.Fonts.Font14,
+					true,
+					White
+				)
+			end
+
+			if Flags.DistanceEsp then
+				local DistText = math.floor((CamPos - Root.Position).Magnitude) .. "s"
+				local DistSize = immediate.calculate_text_size(DistText, Cheat.Fonts.Font14)
+				immediate.text(
+					Vector2.new(CenterX - DistSize.X / 2, BoxBottom + 2 + BotOff),
+					DistText,
+					Cheat.Fonts.Font14,
+					true,
+					White
+				)
+				BotOff = BotOff + 14
+			end
+
+			if Flags.WeaponEsp then
+				local Entry = WeaponCache[Key]
+				local WeaponText = (Entry and Entry.weapon) or GetHeldWeapon(Char)
+				local WeaponSize = immediate.calculate_text_size(WeaponText, Cheat.Fonts.Font14)
+				immediate.text(
+					Vector2.new(CenterX - WeaponSize.X / 2, BoxBottom + 2 + BotOff),
+					WeaponText,
+					Cheat.Fonts.Font14,
+					true,
+					White
+				)
+			end
+		end
 
 		Cache.RunService.PreRender:Connect(function()
 			local Viewport = Cache.Camera.ViewportSize
@@ -1099,14 +1743,42 @@ do
 					end
 
 					local Text = Entry.weapon or "None"
-					local Size = immediate.calculate_text_size(Text, font20)
+					local Size = immediate.calculate_text_size(Text, Cheat.Fonts.Font20)
 					immediate.text(
 						Vector2.new(ScreenPos.X - Size.X / 2, ScreenPos.Y),
 						Text,
-						font20,
+						Cheat.Fonts.Font20,
 						true,
 						Color4.new(1, 1, 1, 1)
 					)
+				end
+			end
+
+			if Flags.BoxEsp or Flags.NameEsp or Flags.HealthBarEsp or Flags.DistanceEsp or Flags.WeaponEsp then
+				local CamPos = Cache.Camera.CFrame.Position
+				local MaxDist = Flags.PlayerLimitDistance or 500
+				local LocalTeam = Cache.Client.Team
+				local EspDelta = Now - LastEspClock
+				LastEspClock = Now
+				local White = Color4.new(1, 1, 1, 1)
+
+				for _, Player in PlayerListCache do
+					if Flags.TeamCheck and LocalTeam and Player.Team == LocalTeam then
+						continue
+					end
+					Espify(Player.Character, Player.Name, Player, CamPos, MaxDist, EspDelta, White)
+				end
+
+				if Flags.AiEsp then
+					if Now - Cheat.SoldierCacheLastUpdate >= Cheat.SOLDIER_CACHE_INTERVAL then
+						Cheat.SoldierCacheLastUpdate = Now
+						AiList()
+					end
+					for _, Soldier in Cheat.SoldierListCache do
+						if Soldier and Soldier.Parent then
+							Espify(Soldier, Soldier.Name, Soldier, CamPos, MaxDist, EspDelta, White)
+						end
+					end
 				end
 			end
 
@@ -1158,8 +1830,8 @@ do
 									if vis then
 										immediate.text(
 											Vector2.new(sp.X, sp.Y),
-											item.Name .. " [" .. math.floor(dist) .. "m]",
-											font20,
+											item.Name .. " [" .. math.floor(dist) .. "s]",
+											Cheat.Fonts.Font20,
 											true,
 											Color4.new(1, 1, 1, 1)
 										)
@@ -1167,6 +1839,43 @@ do
 								end
 							end
 						end
+					end
+				end
+			end
+
+			-- body bags
+			if Flags.BodybagESP then
+				local Bodybags = Cache.Workspace.Bases.Loners:FindFirstChild("Body Bag")
+				if not Bodybags then
+					return
+				end
+
+				for _, Bodybag in Bodybags:GetChildren() do
+					if Bodybag:IsInvalidInstance() then
+						return
+					end
+
+					local Main = Bodybag:FindFirstChild("Main")
+					if not Main then
+						return
+					end
+
+					local Pos = Main.CFrame.Position
+					local Dist = (Cache.Camera.CFrame.Position - Pos).Magnitude
+					if Dist > Flags.BodybagESPDistance then
+						return
+					end
+
+					local ScreenPos, Vis = rendering.world_to_screen(Pos)
+
+					if Vis then
+						immediate.text(
+							Vector2.new(ScreenPos.X, ScreenPos.Y),
+							Bodybag.Name .. " [" .. math.floor(Dist) .. "s]",
+							Cheat.Fonts.Font20,
+							true,
+							Color4.new(1, 1, 1, 1)
+						)
 					end
 				end
 			end
@@ -1197,8 +1906,8 @@ do
 										if vis then
 											immediate.text(
 												Vector2.new(sp.X, sp.Y),
-												node.Name:gsub("_Node", "") .. " [" .. math.floor(dist) .. "m]",
-												font20,
+												node.Name:gsub("_Node", "") .. " [" .. math.floor(dist) .. "s]",
+												Cheat.Fonts.Font20,
 												true,
 												col
 											)
@@ -1210,38 +1919,97 @@ do
 					end
 				end
 			end
-
-			-- plants
-			local camPos = Cache.Camera.CFrame.Position
-			local maxDist = Flags.PlantESPDistance or 500
-			for _, entry in pairs(PlantCache) do
-				if not Flags[entry.flag] then
-					continue
-				end
-				local part = entry.part
-				if part:IsInvalidInstance() then
-					continue
-				end
-				local dist = (camPos - part.Position).Magnitude
-				if dist > maxDist then
-					continue
-				end
-				local sp, vis = rendering.world_to_screen(part)
-				if not vis then
-					continue
-				end
-				immediate.text(
-					Vector2.new(sp.X, sp.Y),
-					entry.label .. " [" .. math.floor(dist) .. "m]",
-					font20,
-					true,
-					entry.col
-				)
-			end
 		end)
 	end -- end of esp loop
 
+	do -- manipulation
+		local OgPos = nil
+
+		Cache.RunService.Heartbeat:Connect(function()
+			local Char = Cache.Character
+			local Root = Char and Char:FindFirstChild("HumanoidRootPart")
+
+			if not Root then
+				DisableManip()
+				OgPos = nil
+				return
+			end
+
+			local ShouldManip = Flags.AimbotManipulation == true
+				and Flags.AimbotManipulationActive == true
+				and Flags.Aimbot == true
+				and AimbotKeybind:is_active()
+				and Flags.LockedTarget ~= nil
+				and not (Flags.Desync and Flags.DesyncActive)
+
+			if not ShouldManip then
+				if Flags.IsManipping then
+					if OgPos then
+						Root.CFrame = (Root.CFrame - Root.CFrame.Position) + OgPos
+						Root.Velocity = Vector3.zero
+					end
+					DisableManip()
+				else
+					return
+				end
+				OgPos = nil
+				return
+			end
+
+			local Target = Flags.LockedTarget
+			local TargetPart = Target and (Target.TargetPart or Target.Head)
+
+			if not Target or not TargetPart or TargetPart:IsInvalidInstance() then
+				if Flags.IsManipping then
+					if OgPos then
+						Root.CFrame = (Root.CFrame - Root.CFrame.Position) + OgPos
+						Root.Velocity = Vector3.zero
+					end
+					DisableManip()
+					OgPos = nil
+				end
+				return
+			end
+
+			if Flags.IsManipping then
+				if OgPos then
+					local PeekPos = FindManipulationPosition(OgPos, TargetPart, Target.Character)
+					if PeekPos then
+						Root.CFrame = (Root.CFrame - Root.CFrame.Position) + PeekPos
+						Root.Velocity = Vector3.zero
+					end
+				end
+				return
+			end
+
+			local PeekPos = FindManipulationPosition(Root.Position, TargetPart, Target.Character)
+			if not PeekPos then
+				return
+			end
+
+			if memory.is_enabled() then
+				memory.writei32(Cheat.Offsets.Base + Cheat.Offsets.FFlags.PhysicsSenderMaxBandwidthBps, -9999)
+				memory.writei32(Cheat.Offsets.Base + Cheat.Offsets.FFlags.DataSenderRate, 60)
+				OgPos = Root.Position
+				Flags.IsManipping = true
+				Flags.ManipulationPosition = OgPos
+				Root.CFrame = (Root.CFrame - Root.CFrame.Position) + PeekPos
+				Root.Velocity = Vector3.zero
+			end
+
+			if
+				not IsManipping
+				and memory.readi32(Cheat.Offsets.Base + Cheat.Offsets.FFlags.PhysicsSenderMaxBandwidthBps) == -9999
+			then
+				DisableManip()
+			end
+		end)
+	end
+
 	do -- movement
+		local LastYawMove = os.clock()
+		local TickCount = 0
+
 		Cache.RunService.Heartbeat:Connect(function(dt)
 			local Char = Cache.Character
 			if not Char or not Char.Parent then
@@ -1249,11 +2017,14 @@ do
 			end
 			local Root = Char:FindFirstChild("HumanoidRootPart")
 			local Humanoid = Char:FindFirstChild("Humanoid")
+			if not Root or not Humanoid then
+				return
+			end
 			local IsFlying = false
 
 			if Flags.Fly then
+				IsFlying = true
 				task.spawn(function()
-					IsFlying = true
 					if Root and Humanoid and Humanoid.Health > 0 then
 						local Delta = dt * Flags.FlySpeed * 3
 						local MoveVector = Vector3.new(0, 0, 0)
@@ -1292,30 +2063,172 @@ do
 
 			if Flags.InfiniteFly and IsFlying and Root and Char and Char.Parent then
 				local Result =
-					physics.raycast(Root.Position, Vector3.new(0, -1, 0), Cheat.RaycastDistance, BuildSelfFilter())
+					physics.raycast(Root.Position, Vector3.new(0, -1000, 0), Cheat.RaycastDistance, BuildSelfFilter())
 
 				local DistanceFromGround = Result and Result.hit_successful and Result.distance or math.huge
-				if DistanceFromGround > 8 then
+				if DistanceFromGround > 4 then
 					task.spawn(function()
 						local OldVel = Root.Velocity
 						for _, Part in Char:GetChildren() do
-							if Part:IsA("BasePart") or Part:IsA("MeshPart") then
-								Part.Velocity = Vector3.new(0, -1000, 0)
+							if Part:IsA("BasePart") then
+								Part.Velocity = Vector3.new(0, -9999, 0)
 							end
 						end
 						Cache.RunService.PreRender:Wait()
 						for _, Part in Char:GetChildren() do
-							if Part:IsA("BasePart") or Part:IsA("MeshPart") then
+							if Part:IsA("BasePart") then
 								Part.Velocity = OldVel
 							end
 						end
 					end)
 				end
 			end
+
+			if Flags.Freecam and Flags.FreecamActive and not IsFlying then
+				if not Root then
+					return
+				end
+
+				if not Cheat.NeedToReturn then
+					Cheat.NeedToReturn = true
+					Cheat.FreecamSavedPosition = Root.CFrame
+
+					-- anchor root
+					Root.NetworkOwnerV3 = 2
+					Root.NetworkIsSleeping = true
+
+					memory.writebool(Humanoid.Address + Cheat.Offsets.Humanoid.AutoRotate, false)
+				end
+
+				local CameraCF = Cache.Camera.CFrame
+				local Look = CameraCF.LookVector
+				local Right = CameraCF.RightVector
+				local Up = Vector3.new(0, 1, 0)
+
+				local MoveLookDir, MoveRightDir, MoveUpDir =
+					(Cache.UserInputService:IsKeyDown(Enum.KeyCode.W) and 1 or 0) + (Cache.UserInputService:IsKeyDown(
+						Enum.KeyCode.S
+					) and -1 or 0),
+					(Cache.UserInputService:IsKeyDown(Enum.KeyCode.D) and 1 or 0) + (Cache.UserInputService:IsKeyDown(
+						Enum.KeyCode.A
+					) and -1 or 0),
+					(Cache.UserInputService:IsKeyDown(Enum.KeyCode.E) and 1 or 0) + (Cache.UserInputService:IsKeyDown(
+						Enum.KeyCode.Control
+					) and -1 or 0)
+
+				local MoveDir = (Look * MoveLookDir) + (Right * MoveRightDir) + (Up * MoveUpDir)
+
+				Root.Velocity = Vector3.zero
+				local Delta = dt * Flags.FreecamSpeed * 50
+
+				if MoveDir.Magnitude > 0 then
+					Root.CFrame = Root.CFrame + (MoveDir.Unit * Delta)
+				end
+
+				local Pos = Root.Position
+				Root.CFrame = CFrame.new(Pos, Pos + Vector3.new(Look.X, 0, Look.Z))
+
+				if Flags.FreecamBtrTeleport then
+					local BTR = Cache.Workspace:FindFirstChild("Events")
+						and Cache.Workspace.Events:FindFirstChild("BTR")
+					local BTRRoot = BTR and BTR:FindFirstChild("HumanoidRootPart")
+
+					if BTRRoot and BTRRoot.IsNetworkOwner then
+						BTRRoot.CFrame = Root.CFrame
+					end
+				end
+			elseif Cheat.NeedToReturn then
+				Cheat.NeedToReturn = false
+				if not Root then
+					return
+				end
+
+				memory.writebool(Humanoid.Address + Cheat.Offsets.Humanoid.AutoRotate, true)
+				Root.NetworkIsSleeping = false
+
+				if Char then
+					for _, Part in Char:GetChildren() do
+						if Part:IsA("BasePart") then
+							Part.NetworkIsSleeping = false
+						end
+					end
+				end
+
+				if Cheat.FreecamSavedPosition then
+					Root.CFrame = Cheat.FreecamSavedPosition
+				end
+				Root.NetworkOwnerV3 = Cache.RakPeerId
+				Cheat.FreecamSavedPosition = nil
+			end
+
+			if
+				Flags.FakeLag
+				and Flags.FakeLagActive
+				and not (Flags.Desync and Flags.DesyncActive)
+				and not Flags.IsManipping
+			then
+				local Now = os.clock()
+
+				if not Cheat.FakeLagLastToggle then
+					Cheat.FakeLagLastToggle = Now
+					Cheat.FakeLagState = false
+				end
+
+				if Now - Cheat.FakeLagLastToggle >= Flags.FakeLagInterval then
+					Cheat.FakeLagLastToggle = Now
+					Cheat.FakeLagState = not Cheat.FakeLagState
+
+					if Cheat.FakeLagState then
+						-- desync on
+						if not memory.is_enabled() then
+							return
+						end
+
+						memory.writei32(Cheat.Offsets.Base + Cheat.Offsets.FFlags.PhysicsSenderMaxBandwidthBps, -9999)
+						memory.writei32(Cheat.Offsets.Base + Cheat.Offsets.FFlags.DataSenderRate, -1)
+					else
+						-- desync off
+						if not memory.is_enabled() then
+							return
+						end
+
+						memory.writei32(Cheat.Offsets.Base + Cheat.Offsets.FFlags.PhysicsSenderMaxBandwidthBps, 38760)
+						memory.writei32(Cheat.Offsets.Base + Cheat.Offsets.FFlags.DataSenderRate, 60)
+					end
+				end
+			end
+
+			-- anti aim
+			local IsShooting = Cache.UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)
+				and GetHeldWeapon(Char) ~= "None"
+
+			if Flags.YawEnabled and not IsShooting then
+				if os.clock() - LastYawMove >= (1 - (Flags.YawSpeed / 100)) then
+					if Flags.YawType == "Spin" then
+						memory.writebool(Humanoid.Address + Cheat.Offsets.Humanoid.AutoRotate, false)
+						Root.CFrame = Root.CFrame * CFrame.Angles(0, math.rad(1), 0)
+					elseif Flags.YawType == "Jitter" then
+						memory.writebool(Humanoid.Address + Cheat.Offsets.Humanoid.AutoRotate, false)
+						if math.random(1, 2) == 1 then
+							Root.CFrame = CFrame.new(Root.Position)
+								* CFrame.fromEulerAnglesXYZ(0, math.rad(Flags.YawMin), 0)
+						else
+							Root.CFrame = CFrame.new(Root.Position)
+								* CFrame.fromEulerAnglesXYZ(0, math.rad(Flags.YawMax), 0)
+						end
+					else
+						memory.writebool(Humanoid.Address + Cheat.Offsets.Humanoid.AutoRotate, true)
+					end
+
+					LastYawMove = os.clock()
+				end
+			elseif not memory.readbool(Humanoid.Address + Cheat.Offsets.Humanoid.AutoRotate) then
+				memory.writebool(Humanoid.Address + Cheat.Offsets.Humanoid.AutoRotate, true)
+			end
 		end)
 	end -- end of movement loop
 
-	do -- misc loop
+	do -- misc
 		local function CheckForModerators(joinedPlayer)
 			if not Flags.ModChecker then
 				return
@@ -1336,20 +2249,81 @@ do
 			CheckForModerators(player)
 		end)
 
+		Cache.RunService.Heartbeat:Connect(function(dt)
+			-- card no clip
+			if Flags.CardNoClip then
+				for _, Part in Cache.Workspace.RocketFactoryPinkCardInvisWalls:GetChildren() do
+					if Part:IsA("Part") then
+						Part.CanCollide = not Flags.CardNoClip
+					end
+				end
+
+				for _, Part in Cache.Workspace.Monuments:GetDescendants() do
+					if Part:IsA("MeshPart") and Part.Name:find("FallenShippingContainer") then
+						Part.CanCollide = not Flags.CardNoClip
+					end
+				end
+			end
+		end)
+
 		do -- misc visuals
 			Cache.RunService.PreRender:Connect(function()
 				local ViewportSize = Cache.Camera.ViewportSize
-				if Flags.DesyncEnabled then
-					local Distance = (Cache.Camera.CFrame.Position - Flags.DesyncPosition).Magnitude
+				if Flags.DesyncEnabled and Flags.Desync then
+					local Distance = (
+						Cache.Character:FindFirstChild("HumanoidRootPart").Position - Flags.DesyncPosition
+					).Magnitude
 					local Color = Color4.new(1, 1, 1, 1)
 					local Text = "Desynced " .. tostring(math.floor(Distance)) .. " Studs"
-					local TextSize = immediate.calculate_text_size(Text, font20)
+					local TextSize = immediate.calculate_text_size(Text, Cheat.Fonts.Font20)
 					local CenterX = (ViewportSize.X / 2) - (TextSize.X / 2)
 
 					if Distance >= 8 then
 						Color = Color4.new(1, 0, 0, 1)
 					end
-					immediate.text(Vector2.new(CenterX, ViewportSize.Y - 250), Text, font20, true, Color)
+					immediate.text(Vector2.new(CenterX, ViewportSize.Y - 250), Text, Cheat.Fonts.Font20, true, Color)
+				end
+
+				if Flags.IsManipping and Flags.ManipulationPosition then
+					local Root = Cache.Character and Cache.Character:FindFirstChild("HumanoidRootPart")
+					if Root then
+						local Distance = (Root.Position - Flags.ManipulationPosition).Magnitude
+						local Color = Color4.new(1, 1, 1, 1)
+						local Text = "Manipulated " .. tostring(math.floor(Distance)) .. " Studs"
+						local TextSize = immediate.calculate_text_size(Text, Cheat.Fonts.Font20)
+						local CenterX = (ViewportSize.X / 2) - (TextSize.X / 2)
+
+						if Distance >= 8 then
+							Color = Color4.new(1, 0, 0, 1)
+						end
+						immediate.text(
+							Vector2.new(CenterX, ViewportSize.Y - 250),
+							Text,
+							Cheat.Fonts.Font20,
+							true,
+							Color
+						)
+					end
+				end
+
+				if Cheat.FreecamSavedPosition then
+					local Color = Color4.new(1, 1, 1, 1)
+					local Text = "Server Position"
+					immediate.text(Cheat.FreecamSavedPosition.Position, Text, Cheat.Fonts.Font20, true, Color)
+				end
+
+				if
+					Flags.FakeLag
+					and Flags.FakeLagActive
+					and not (Flags.Desync and Flags.DesyncActive)
+					and not Flags.IsManipping
+				then
+					local Color = Color4.new(1, 1, 1, 1)
+					local Text = "Fakelag Enabled"
+					local TextSize = immediate.calculate_text_size(Text, Cheat.Fonts.Font20)
+					local CenterX = (ViewportSize.X / 2) - (TextSize.X / 2)
+
+					immediate.text(Vector2.new(CenterX, ViewportSize.Y - 250), Text, Cheat.Fonts.Font20, true, Color)
 				end
 			end)
 		end
