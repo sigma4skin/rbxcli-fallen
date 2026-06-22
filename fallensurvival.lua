@@ -1,3 +1,7 @@
+--!grant Memory
+--!grant Filesystem
+--!grant RuntimeLoadstring
+
 --[[
     4skin   - main codebase + the idea to make this
     axinlol - some dogshit misc esp made with ai
@@ -5,10 +9,10 @@
 
 ]]
 
-if _G.FallenLoaded then
-	return
-end
-_G.FallenLoaded = true
+--if _G.FallenLoaded then
+--	return
+--end
+--_G.FallenLoaded = true
 
 -- 6/18/2026
 local Cache = {}
