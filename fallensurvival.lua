@@ -1057,6 +1057,7 @@ do
 end
 
 do
+	--[[
 	local AntiAimCategory = MovementTab:add_category("Anti Aim")
 
 	local AntiAimYawSpeedSlider
@@ -1095,6 +1096,7 @@ do
 		Flags.YawMax = V
 	end)
 	AntiAimYawMaxSlider:set_visible(false)
+	--]]
 end
 
 local VisualsTab = gui.add_tab("ESP", { icon = Enum.TabIcon.Eye, after = "after" })
