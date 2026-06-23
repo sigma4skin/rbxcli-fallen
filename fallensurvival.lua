@@ -1573,7 +1573,7 @@ do
 			local Height = math.abs(BottomPos.Y - TopPos.Y)
 			local Width = math.max(Height / 1.5, 6)
 			local BoxX = math.floor(TopPos.X - Width / 2)
-			local BoxY = math.max(math.floor(TopPos.Y), 20)
+			local BoxY = math.max(math.floor(TopPos.Y), 500)
 			local BoxW = math.ceil(Width)
 			local BoxH = math.ceil(Height)
 			local BoxRight = BoxX + BoxW
