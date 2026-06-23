@@ -1575,7 +1575,7 @@ do
 			local BoxX = math.floor(TopPos.X - Width / 2)
 			local BoxY = math.floor(TopPos.Y)
 			local BoxW = math.ceil(Width)
-			local BoxH = math.ceil(Height)
+			local BoxH = math.max(math.ceil(Height), 30)
 			local BoxRight = BoxX + BoxW
 			local BoxBottom = BoxY + BoxH
 			local CenterX = BoxX + BoxW / 2
