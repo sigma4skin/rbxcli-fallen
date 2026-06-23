@@ -5,10 +5,10 @@
 
 ]]
 
-if _G.FallenLoaded then
-	return
-end
-_G.FallenLoaded = true
+--if _G.FallenLoaded then
+--	return
+--end
+--_G.FallenLoaded = true
 
 -- 6/18/2026
 local Cache = {}
@@ -1057,7 +1057,6 @@ do
 end
 
 do
-	--[[
 	local AntiAimCategory = MovementTab:add_category("Anti Aim")
 
 	local AntiAimYawSpeedSlider
@@ -1096,7 +1095,6 @@ do
 		Flags.YawMax = V
 	end)
 	AntiAimYawMaxSlider:set_visible(false)
-	--]]
 end
 
 local VisualsTab = gui.add_tab("ESP", { icon = Enum.TabIcon.Eye, after = "after" })
@@ -1327,7 +1325,7 @@ do
 					)
 					TargetPos = ResolvedPart.Position + Vector3.new(0, Drop, 0)
 				else
-					if HeldWeapon == "Bow" or HeldWeapon == "Crossbow" then
+					if HeldWeapon == "Wooden Bow" or HeldWeapon == "Crossbow" then
 						TargetPos = CalculateTargetPositionNoYPred(
 							Info.Speed,
 							Info.Gravity,
@@ -2210,7 +2208,7 @@ do
 				if os.clock() - LastYawMove >= (1 - (Flags.YawSpeed / 100)) then
 					if Flags.YawType == "Spin" then
 						memory.writebool(Humanoid.Address + Cheat.Offsets.Humanoid.AutoRotate, false)
-						Root.CFrame = Root.CFrame * CFrame.Angles(0, math.rad(1), 0)
+						Root.CFrame = Root.CFrame * CFrame.fromEulerAnglesXYZ(0, math.rad(1), 0)
 					elseif Flags.YawType == "Jitter" then
 						memory.writebool(Humanoid.Address + Cheat.Offsets.Humanoid.AutoRotate, false)
 						if math.random(1, 2) == 1 then
